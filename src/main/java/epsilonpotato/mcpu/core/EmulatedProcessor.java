@@ -30,6 +30,12 @@ public abstract class EmulatedProcessor
 
     public abstract void setIO(int port, byte value);
 
+    public abstract Location getIOLocation(int port);
+    
+    public abstract void setIODirection(int port, boolean direction);
+    
+    public abstract boolean getIODirection(int port);
+    
     public abstract String getState();
 
     public abstract long getTicksElapsed();

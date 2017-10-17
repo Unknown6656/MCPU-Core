@@ -33,7 +33,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 public abstract class MCPUCore extends JavaPlugin implements Listener
 {
-
     public static final LinkedList<Triplet<Integer, Integer, Integer>> pendingexplosions = new LinkedList<>();
     public static final HashMap<Integer, EmulatedProcessor> cores = new HashMap<>();
     private static final int CPUSIZE = 3; // TODO fix
@@ -59,7 +58,13 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
         log = getLogger();
 
         getServer().getPluginManager().registerEvents(this, this);
-        getServer().getScheduler().scheduleSyncRepeatingTask(this, () -> cores.values().forEach(c -> c.nextInstruction()), 1, 1);
+        getServer().getScheduler().scheduleSyncRepeatingTask(this, () -> cores.values().forEach(c ->
+        {
+            c.nextInstruction();
+            
+            // TODO : update IOPorts here ?
+            
+        }), 1, 1);
     }
 
     @Override
