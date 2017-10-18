@@ -18,7 +18,7 @@ public abstract class EmulatedProcessor
     protected final int iocount;
 
     public EmulatedProcessorEvent<String> onError;
-    
+
     public abstract void nextInstruction();
 
     public abstract void reset();

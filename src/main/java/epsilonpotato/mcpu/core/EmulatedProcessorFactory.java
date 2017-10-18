@@ -10,6 +10,7 @@ public abstract class EmulatedProcessorFactory<T extends EmulatedProcessor>
 
     public abstract T createProcessor(Player p, Location l, Triplet<Integer, Integer, Integer> size, int iocount);
 
+    @SuppressWarnings("unchecked")
     public static EmulatedProcessorFactory<EmulatedProcessor> getFactoryByArchitectureName(String nameString)
             throws ClassNotFoundException, InstantiationException, IllegalAccessException
     {
