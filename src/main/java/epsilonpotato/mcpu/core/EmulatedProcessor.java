@@ -16,7 +16,8 @@ public abstract class EmulatedProcessor
     protected final Player creator;
     protected final World world;
     protected final int iocount;
-
+    
+    
     public EmulatedProcessorEvent<String> onError;
 
     public abstract void nextInstruction();

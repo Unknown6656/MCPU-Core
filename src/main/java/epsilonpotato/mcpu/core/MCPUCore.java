@@ -49,8 +49,12 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
     {
         usagetext = "/mcpu command usage:\n" +
                     " list              - Lists all available MCPU cores\n" +
-                    " add               - Adds a new core to the world at the callers position\n" +
-                    " add <x> <y> <z>   - Adds a new core to the world at the given coordinates\n" +
+                    " add7seg           - Adds a new 7-segment-display to the world at the callers position\n" +
+                    " add <a> [io]      - Adds a new core with the architecture 'a' and io\n" +
+                    "                     pin count 'io' to the world at the callers position\n" +
+                    " add <x> <y> <z> <w> <a> [io]\n" +
+                    "                   - Adds a new core to the world 'w' at the given coordinates 'x|y|z'\n" +
+                    "                     with the architecture 'a' and io pin count 'io' (default = 3x3 pins)" +
                     " remove <n>        - Removes the core No. n\n" +
                     " loadb[ook] <n>    - Loads the book hold in the hand into the core No. n\n" +
                     " loadu[ri] <n> <u> - Loads the string acessible via the given URI u into the core No. n\n" +
@@ -58,9 +62,12 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
                     " stop <n>          - Halts the core No. n\n" +
                     " next <n>          - Forces the execution of the next instruction of core No. n" +
                     " reset <n>         - Halts and resets the core No. n\n" +
-                    " state <n>         - Displays the state of core No. n";
+                    " state <n>         - Displays the state of core No. n\n" +
+                    " arch[itectures]   - Lists all available processor architectures";
         
         log = getLogger();
+        
+        registerProcessorArchitectures();
         
         getServer().getPluginManager().registerEvents(this, this);
         getServer().getScheduler().scheduleSyncRepeatingTask(this, () -> cores.values().forEach(c ->
@@ -119,6 +126,8 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
                     event.getPlayer().sendMessage(ChatColor.RED + "You cannot destroy a block from a registered CPU core.");
             }
     }
+    
+    public abstract void registerProcessorArchitectures();
     
     public abstract void onWorldSaveEvent(WorldSaveEvent event);
     
@@ -224,6 +233,19 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
                         }
                 }
                     break;
+                case "add7seg":
+                    if (sender instanceof Player)
+                    {
+                        Player player = (Player)sender;
+                        Location loc = player.getLocation();
+                        Tuple<Integer, SevenSegmentDisplay> t = spawnDisplay(player, loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), loc.getWorld());
+                        
+                        Print(sender, ChatColor.GREEN, "The display No. " + t.x + " has been created.");
+                    }
+                    else
+                        Print(sender, ChatColor.RED, "You must be a player inside the world to place a 7-segment-display.");
+                    
+                    break;
                 case "delete":
                 case "remove":
                     GetInt(args, 1, sender, i ->
@@ -297,15 +319,20 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
                             }
                     });
                     break;
+                case "arch":
+                case "architectures":
+                    Print(sender, ChatColor.WHITE, String.join(", ", EmulatedProcessorFactory.getRegisteredArchitectures()));
+                    
+                    break;
                 case "state":
-                    GetCore(args, 1, sender, c -> sender.sendMessage(c.getState()));
+                    GetCore(args, 1, sender, c -> sender.sendMessage("(" + c.getClass().getTypeName() + ") " + c.getState()));
                     break;
                 case "list":
                     cores.keySet().forEach((i) ->
                     {
                         EmulatedProcessor c = cores.get(i);
                         
-                        sender.sendMessage("[" + i + "]: " + c.getState());
+                        sender.sendMessage("[" + i + "]: (" + c.getClass().getTypeName() + ")" + c.getState());
                     });
                     break;
                 default:
@@ -393,7 +420,6 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
     @SuppressWarnings("deprecation")
     protected <T extends EmulatedProcessor> Tuple<Integer, T> SpawnCPU(Player p, int x, int y, int z, World w, int iosidecount, EmulatedProcessorFactory<T> fac)
     {
-        int num = cores.size();
         int sidelength = iosidecount * 2 - 1;
         
         deleteRegion(w, x - 2, y - 1, z - 2, sidelength + 4, 3, sidelength + 4);
@@ -409,6 +435,8 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
                 SetBlock(w, x + i, y, z + j, Material.WOOL, b -> b.setData(DyeColor.BLACK.getWoolData())); // TODO: fix deprecated calls
         
         // CREATE GOLD CORNER + SIGN + LEVER
+        int num = cores.size();
+        
         SetBlock(w, x, y, z, Material.GOLD_BLOCK);
         SetBlock(w, x + 1, y, z, Material.GOLD_BLOCK);
         SetBlock(w, x - sidelength + 1, y + 1, z - sidelength, Material.LEVER, b ->
@@ -444,6 +472,46 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
         cores.put(num, proc);
         
         return new Tuple<>(num, proc);
+    }
+
+    @SuppressWarnings("deprecation")
+    protected Tuple<Integer, SevenSegmentDisplay> spawnDisplay(Player p, int x, int y, int z, World w)
+    {
+        // CREATE STONE BASE
+        for (int i = 0; i < 9; ++i)
+            for (int j = 0; j < 14; ++j)
+                SetBlock(w, x + i, y - 1, z + j, Material.STONE);
+
+        // CREATE WOOL FRAME
+        for (int i = 0; i < 9; ++i)
+            for (int j = 0; j < 12; ++j)
+                SetBlock(w, x + i, y - 1, z + j, Material.STONE);
+        
+        // CREATE GOLD BLOCK + LEVER
+        SetBlock(w, x, y, z, Material.GOLD_BLOCK);
+        SetBlock(w, x, y + 1, z, Material.LEVER, b ->
+        {
+            b.setData((byte)6);
+            b.getState().update();
+        });
+        
+        // CREATE PINS
+        for (int i = 0; i < 9; i += 2)
+        {
+            SetBlock(w, x + i, y, z + 12, Material.IRON_BLOCK);
+            SetBlock(w, x + i, y, z + 13, Material.REDSTONE_WIRE);
+        }
+        
+        return add(new SevenSegmentDisplay(p, x, y, z));
+    }
+    
+    private <T extends EmulatedProcessor> Tuple<Integer, T> add(T proc) 
+    {
+        int num = cores.size();
+
+        cores.put(num, proc);
+        
+        return new Tuple<Integer, T>(num, proc);
     }
     
     protected static Block SetBlock(World w, int x, int y, int z, Material m)

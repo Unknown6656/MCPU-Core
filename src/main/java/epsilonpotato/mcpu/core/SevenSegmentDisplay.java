@@ -3,107 +3,171 @@ package epsilonpotato.mcpu.core;
 import java.net.URI;
 
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 
 
-public class SevenSegmentDisplay extends EmulatedProcessor
+public final class SevenSegmentDisplay extends EmulatedProcessor
 {
-
-    public SevenSegmentDisplay(Player p, Location l, Triplet<Integer, Integer, Integer> size, int iocount)
+    /*
+     *  13  0  8
+     *    .---.
+     *  5 |   | 1
+     * 12 >-6-< 9
+     *  4 |   | 2
+     *    '---' [7]
+     *  11  3  10
+     *  
+     *  
+     *  8 = 0 | 1
+     *  9 = 1 | 2 | 6
+     * 10 = 2 | 3
+     * 11 = 3 | 4
+     * 12 = 4 | 5 | 6
+     * 13 = 0 | 5
+     * 
+     */
+    private static final short[] SegmentMap = new short[] { 0xfc, 0x60, 0xda, 0xf2, 0x66, 0xb6, 0xbe, 0xd0, 0xfe, 0xf6, 0xee, 0x3e, 0x1a, 0x7a, 0x9e, 0x8e };
+    private static final byte[][] PixelMap = new byte[][]
     {
-        super(p, l, size, iocount);
-        // TODO Auto-generated constructor stub
+        { 20, 21, 22 }, // 0
+        { 32, 41, 50 }, // 1
+        { 68, 77, 86 }, // 2
+        { 92, 93, 94 }, // 3
+        { 64, 73, 82 }, // 4
+        { 28, 37, 46 }, // 5
+        { 56, 57, 58 }, // 6
+        { 97 }, // 7
+        { 23 }, // 8
+        { 59 }, // 9
+        { 95 }, // 10
+        { 91 }, // 11
+        { 55 }, // 12
+        { 19 }, // 13
+    };
+    private static final Material materialOn = Material.REDSTONE_BLOCK;
+    private static final Material materialOff = Material.STONE;
+    private byte ioval = 0x00;
+    
+    
+    public SevenSegmentDisplay(Player p, int x, int y, int z)
+    {
+        super(p, new Location(p.getWorld(), x, y, z), new Triplet<>(9, 2, 12), 5);
     }
 
     @Override
     public void nextInstruction()
     {
-        // TODO Auto-generated method stub
-        
     }
 
+    private void setDisplay(byte value)
+    {
+        ioval = value;
+        
+        short segments = SegmentMap[ioval & 0x0f];
+        boolean[] onstate = new boolean[6];
+        
+        for (int i = 7; i >= 1; --i)
+        {
+            boolean on = ((segments >> i) & 1) != 0;
+            
+            for (byte loc : PixelMap[7 - i])
+                setPixelAt(loc, on);
+            
+            onstate[7 - i] = on;
+        }
+
+        // SET DOT
+        setPixelAt(PixelMap[7][0], (ioval & 0x10) != 0);
+        
+        // SET CORNER PIXELS
+        setPixelAt(PixelMap[8][0], onstate[0] | onstate[1]);
+        setPixelAt(PixelMap[9][0], onstate[1] | onstate[2] | onstate[6]);
+        setPixelAt(PixelMap[10][0], onstate[2] | onstate[3]);
+        setPixelAt(PixelMap[11][0], onstate[3] | onstate[4]);
+        setPixelAt(PixelMap[12][0], onstate[4] | onstate[5] | onstate[6]);
+        setPixelAt(PixelMap[13][0], onstate[0] | onstate[5]);
+    }
+    
+    private void setPixelAt(int loc, boolean on)
+    {
+        int xoffs = loc % 9;
+        int zoffs = loc / 9;
+
+        world.getBlockAt(x + xoffs, y, z + zoffs).setType(on ? materialOn : materialOff);
+    }
+    
     @Override
     public void reset()
     {
-        // TODO Auto-generated method stub
-        
+        setDisplay((byte)0);
     }
 
     @Override
     public void start()
     {
-        // TODO Auto-generated method stub
-        
     }
 
     @Override
     public void stop()
     {
-        // TODO Auto-generated method stub
-        
     }
 
     @Override
     public boolean load(URI source)
     {
-        // TODO Auto-generated method stub
         return false;
     }
 
     @Override
     public byte getIO(int port)
     {
-        // TODO Auto-generated method stub
         return 0;
     }
 
     @Override
     public void setIO(int port, byte value)
     {
-        // TODO Auto-generated method stub
-        
+        if (port < getIOCount())
+        {
+            byte newval = (byte)(ioval & ~(1 << port));
+            
+            setDisplay((byte)(newval | (value > 0 ? 1 << port : 0)));   
+        }
     }
 
     @Override
     public Location getIOLocation(int port)
     {
-        // TODO Auto-generated method stub
-        return null;
+        return new Location(world, x + 2 * port, y, z + 12);
     }
 
     @Override
     public void setIODirection(int port, boolean direction)
     {
-        // TODO Auto-generated method stub
-        
     }
 
     @Override
     public boolean getIODirection(int port)
     {
-        // TODO Auto-generated method stub
         return false;
     }
 
     @Override
     public String getState()
     {
-        // TODO Auto-generated method stub
-        return null;
+        return String.format("%02x", ioval);
     }
 
     @Override
     public long getTicksElapsed()
     {
-        // TODO Auto-generated method stub
         return 0;
     }
 
     @Override
     public int getIOCount()
     {
-        // TODO Auto-generated method stub
-        return 0;
+        return 5;
     }
-    
 }
