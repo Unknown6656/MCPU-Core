@@ -257,7 +257,7 @@ public abstract class LeverAwareEmulatedProcessor : EmulatedProcessor
 ```
 ### Suqare emulated processor abstract class definition:
 ```java
-public abstract class LeverAwareEmulatedProcessor : LeverAwareEmulatedProcessor
+public abstract class SquareEmulatedProcessor : LeverAwareEmulatedProcessor
 {
 ----------------------------- FIELDS -------------------------------
 
