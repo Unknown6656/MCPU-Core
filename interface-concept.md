@@ -81,7 +81,7 @@ public abstract class IC
         (xsize|ysize|zsize) = size;
         (x|y|z) = loc.xyz;
         world = loc.world;
-        crator = cr;
+        creator = cr;
         io = new (byte, boolean)[iocount];
     }
 
@@ -114,7 +114,7 @@ public abstract class IC
     }
 
     // Returns the IO port's direction
-    public final boolean getIOValue(int port)
+    public final boolean getIODirection(int port)
     {
         checkPort(port, () -> {
             return io[port].direction;
