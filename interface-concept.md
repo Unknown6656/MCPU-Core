@@ -128,7 +128,7 @@ public abstract class IC
     public final World getWorld() -> world;
 
     // Returns the IC's north-west corner
-    public Location getIOLocation() -> new Location(world, x, y, z);
+    public Location getLocation() -> new Location(world, x, y, z);
 
     // Returns true if location is inside the IC
     // Used by the plugin to check whether a block can be broken or not
