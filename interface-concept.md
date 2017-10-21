@@ -1,4 +1,30 @@
-Orientation enum:
+# The basic Gestalt:
+
+## Inheritance tree:
+```
+a <──── b    "b inherits/extends a"
+
+
+    IC <───────── EmulatedProcessor <────── LeverAwareEmulatedProcessor <────── SquareProcessor
+    ↑↑                    ↑                                                      ↑ ↑ ↑ ↑ ↑ ↑ ↑
+ ╭┄┄╯┆                    ┆                                                 x86 ┄╯ ┆ ┆ ┆ ┆ ┆ ╰┄ avr
+ ┆   ┆                  Sensor                                              x64 ┄┄┄╯ ┆ ┆ ┆ ╰┄ z80
+ ┆ Gates                 ↑  ↑                                                   amd ┄╯ ┆ ╰┄ stack-
+ ┆ ↑↑↑↑↑                 ┆  ╰┄ proximity sensor                                        ┆    based
+ ┆ ┆┆┆┆╰┄ not        .........                                                      .......
+ ┆ ┆┆┆╰┄ xor, nxor
+ ┆ ┆┆╰┄ and, nand
+ ┆ ┆╰┄ or, nor
+ ┆ ╰┄ .......
+ ┆
+ ╰┄ Displays
+    ↑  ↑  ↑
+    ┆  ┆  ╰┄ 7segment
+    ┆  ╰┄┄┄┄ 4bit wool display 
+ .......
+```
+
+### Orientation enum:
 ```java
 public enum Orientation
 {
@@ -6,7 +32,7 @@ public enum Orientation
     NORTH, WEST, SOUTH, EAST, VERTICAL_NS, VERTICAL_EW
 }
 ```
-Abstract IC class definition:
+### Abstract IC class definition:
 ```java
 public abstract class IC
 {
@@ -112,7 +138,7 @@ public abstract class IC
     }
 }   
 ```
-Emulated Processor abstract class definition:
+## Emulated Processor abstract class definition:
 ```java
 public abstract class EmulatedProcessor : IC
 {
@@ -123,6 +149,11 @@ public abstract class EmulatedProcessor : IC
 
     // the number of elapsed ticks since the last processor reset
     protected long ticks;
+
+    // a λ-function, which will be called by 'executeNextInstruction()' in case of a fatal error.
+    // The first parameter represents the error message, the second one the current instance
+    // (simply pass 'this'). The plugin class automatically subsribes to such error handlers
+    public (string, EmulatedProcessor -> void) onError;
 
 ---------------------------- ABSTRACTS ----------------------------
 
@@ -136,7 +167,13 @@ public abstract class EmulatedProcessor : IC
     // This should call 'reset()' before the actual load.
     public abstract boolean load(string code);
 
+    // the method which handles the instruction execution.
+    // Calls 'stop()' if the Processor has no more instructions to execute
+    public abstract void executeNextInstruction();
+
 ----------------------------- METHODS -----------------------------
+
+    // <inherits parent constructor>
 
     // starts the processor
     public final void start()
@@ -170,8 +207,8 @@ public abstract class EmulatedProcessor : IC
         return load(fetched_code);
     }
 
-    // inherited from 'IC'
-    public final void onTick()
+    // implementation from 'IC'
+    @Override public void onTick()
     {
         if (canrun)
         {
@@ -183,5 +220,58 @@ public abstract class EmulatedProcessor : IC
 
     // returns the number of elapsed ticks since the last reset
     public final long getElapsedTicks() -> ticks;
+}
+```
+### Lever-aware emulated processor abstract class definition:
+```java
+public abstract class LeverAwareEmulatedProcessor : EmulatedProcessor
+{
+----------------------------- FIELDS -------------------------------
+
+---------------------------- ABSTRACTS ----------------------------
+
+    // returns the location of the on/off-lever for the current instance
+    public abstract Location getLeverLocation();
+
+----------------------------- METHODS -----------------------------
+
+    // <inherits parent constructor>
+
+    // implementation from 'IC'
+    @Override protected final void executeNextInstruction()
+    {
+        if (canrun)
+        {
+            Block lever = getLeverLocation().getBlock();
+
+            if (lever == Material.LEVER)
+                if (lever.isPowered())
+                {
+                    executeNextInstruction();
+
+                    ++ticks;
+                }
+        }
+    }
+}
+```
+### Suqare emulated processor abstract class definition:
+```java
+public abstract class LeverAwareEmulatedProcessor : LeverAwareEmulatedProcessor
+{
+----------------------------- FIELDS -------------------------------
+
+---------------------------- ABSTRACTS ----------------------------
+
+----------------------------- METHODS -----------------------------
+
+    // creates square dimensions
+    public .ctor(Player cr, Location loc, int iosidecount, Orientation orient)
+    {
+        super..ctor(cr, loc, (iosidecount * 2 + 1, 2, iosidecount * 2 + 1), iosidecount * 4, orient);
+    }
+
+    // implementation from 'LeverAwareEmulatedProcessor'
+    @Override public final Location getLeverLocation() -> (x + 1|y|z + 1);
 }
 ```
