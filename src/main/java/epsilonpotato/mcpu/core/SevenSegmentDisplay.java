@@ -4,6 +4,7 @@ import java.net.URI;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
 
@@ -60,12 +61,22 @@ public final class SevenSegmentDisplay extends EmulatedProcessor
     {
     }
 
+    public boolean IsEnabled()
+    {
+        Block b = world.getBlockAt(x, y + 1, z);
+        
+        return b.getType() == Material.LEVER ? b.isBlockPowered() || (b.getBlockPower() != 0) : true;
+    }
+
     private void setDisplay(byte value)
     {
         ioval = value;
         
+        if (!IsEnabled())
+            return;
+        
         short segments = SegmentMap[ioval & 0x0f];
-        boolean[] onstate = new boolean[6];
+        boolean[] onstate = new boolean[7];
         
         for (int i = 7; i >= 1; --i)
         {
@@ -80,21 +91,23 @@ public final class SevenSegmentDisplay extends EmulatedProcessor
         // SET DOT
         setPixelAt(PixelMap[7][0], (ioval & 0x10) != 0);
         
-        // SET CORNER PIXELS
-        setPixelAt(PixelMap[8][0], onstate[0] | onstate[1]);
-        setPixelAt(PixelMap[9][0], onstate[1] | onstate[2] | onstate[6]);
-        setPixelAt(PixelMap[10][0], onstate[2] | onstate[3]);
-        setPixelAt(PixelMap[11][0], onstate[3] | onstate[4]);
-        setPixelAt(PixelMap[12][0], onstate[4] | onstate[5] | onstate[6]);
-        setPixelAt(PixelMap[13][0], onstate[0] | onstate[5]);
+        // // SET CORNER PIXELS
+        // setPixelAt(PixelMap[8][0], onstate[0] | onstate[1]);
+        // setPixelAt(PixelMap[9][0], onstate[1] | onstate[2] | onstate[6]);
+        // setPixelAt(PixelMap[10][0], onstate[2] | onstate[3]);
+        // setPixelAt(PixelMap[11][0], onstate[3] | onstate[4]);
+        // setPixelAt(PixelMap[12][0], onstate[4] | onstate[5] | onstate[6]);
+        // setPixelAt(PixelMap[13][0], onstate[0] | onstate[5]);
     }
     
     private void setPixelAt(int loc, boolean on)
     {
         int xoffs = loc % 9;
         int zoffs = loc / 9;
-
-        world.getBlockAt(x + xoffs, y, z + zoffs).setType(on ? materialOn : materialOff);
+        Block b = world.getBlockAt(x + xoffs, y, z + zoffs);
+        
+        b.setType(on ? materialOn : materialOff);
+        b.getState().update();
     }
     
     @Override
@@ -139,7 +152,7 @@ public final class SevenSegmentDisplay extends EmulatedProcessor
     @Override
     public Location getIOLocation(int port)
     {
-        return new Location(world, x + 2 * port, y, z + 12);
+        return new Location(world, x + 2 * (4 - port), y, z + 12);
     }
 
     @Override

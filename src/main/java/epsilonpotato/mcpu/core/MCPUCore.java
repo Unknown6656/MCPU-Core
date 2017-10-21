@@ -72,20 +72,24 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
         getServer().getPluginManager().registerEvents(this, this);
         getServer().getScheduler().scheduleSyncRepeatingTask(this, () -> cores.values().forEach(c ->
         {
+            // UPDATE INPUT IO
+            for (int io = 0, cnt = c.getIOCount(); io < cnt; ++io)
+                if (!c.getIODirection(io))
+                {
+                    int power = c.getIOLocation(io).getBlock().getBlockPower();
+                    
+                    c.setIO(io, (byte)(power & 0xff));
+                }
+                
             c.nextInstruction();
             
+            // UPDATE OUTPUT IO
             for (int io = 0, cnt = c.getIOCount(); io < cnt; ++io)
                 if (c.getIODirection(io))
                 {
                     boolean on = c.getIO(io) != 0;
                     
                     c.getIOLocation(io).getBlock().setType(on ? Material.REDSTONE_BLOCK : Material.IRON_BLOCK);
-                }
-                else
-                {
-                    int power = c.getIOLocation(io).getBlock().getBlockPower();
-                    
-                    c.setIO(io, (byte)(power & 0xff));
                 }
         }), 1, 1);
     }
@@ -457,14 +461,14 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
         for (int i = 0; i <= sidelength; i += 2)
         {
             SetBlock(w, x + i, y, z - 1, Material.IRON_BLOCK); // NORTH SIDE
-            SetBlock(w, x + i, y, z + sidelength + 1, Material.IRON_BLOCK); // SOUTH SIDE
+            SetBlock(w, x + i, y, z + sidelength, Material.IRON_BLOCK); // SOUTH SIDE
             SetBlock(w, x - 1, y, z + i, Material.IRON_BLOCK); // WEST SIDE
-            SetBlock(w, x + sidelength + 1, y, z + i, Material.IRON_BLOCK); // EAST SIDE
+            SetBlock(w, x + sidelength, y, z + i, Material.IRON_BLOCK); // EAST SIDE
             
             SetBlock(w, x + i, y, z - 2, Material.REDSTONE_WIRE); // NORTH SIDE
-            SetBlock(w, x + i, y, z + sidelength + 2, Material.REDSTONE_WIRE); // SOUTH SIDE
+            SetBlock(w, x + i, y, z + sidelength + 1, Material.REDSTONE_WIRE); // SOUTH SIDE
             SetBlock(w, x - 2, y, z + i, Material.REDSTONE_WIRE); // WEST SIDE
-            SetBlock(w, x + sidelength + 2, y, z + i, Material.REDSTONE_WIRE); // EAST SIDE
+            SetBlock(w, x + sidelength + 1, y, z + i, Material.REDSTONE_WIRE); // EAST SIDE
         }
 
         T proc = fac.createProcessor(p, new Location(w, x - 1, y, z - 1), new Triplet<>(sidelength + 2, 2, sidelength + 2), iosidecount * 4);
@@ -485,7 +489,7 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
         // CREATE WOOL FRAME
         for (int i = 0; i < 9; ++i)
             for (int j = 0; j < 12; ++j)
-                SetBlock(w, x + i, y - 1, z + j, Material.STONE);
+                SetBlock(w, x + i, y, z + j, Material.WOOL, b -> b.setData(DyeColor.BLACK.getWoolData())); // TODO: fix deprecated calls
         
         // CREATE GOLD BLOCK + LEVER
         SetBlock(w, x, y, z, Material.GOLD_BLOCK);
