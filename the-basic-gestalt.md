@@ -81,7 +81,7 @@ public abstract class IC
         (xsize|ysize|zsize) = size;
         (x|y|z) = loc.xyz;
         world = loc.world;
-        crator = cr;
+        creator = cr;
         io = new (byte, boolean)[iocount];
     }
 
@@ -114,7 +114,7 @@ public abstract class IC
     }
 
     // Returns the IO port's direction
-    public final boolean getIOValue(int port)
+    public final boolean getIODirection(int port)
     {
         checkPort(port, () -> {
             return io[port].direction;
@@ -128,7 +128,7 @@ public abstract class IC
     public final World getWorld() -> world;
 
     // Returns the IC's north-west corner
-    public Location getIOLocation() -> new Location(world, x, y, z);
+    public Location getLocation() -> new Location(world, x, y, z);
 
     // Returns true if location is inside the IC
     // Used by the plugin to check whether a block can be broken or not
@@ -257,7 +257,7 @@ public abstract class LeverAwareEmulatedProcessor : EmulatedProcessor
 ```
 ### Suqare emulated processor abstract class definition:
 ```java
-public abstract class LeverAwareEmulatedProcessor : LeverAwareEmulatedProcessor
+public abstract class SquareEmulatedProcessor : LeverAwareEmulatedProcessor
 {
 ----------------------------- FIELDS -------------------------------
 
