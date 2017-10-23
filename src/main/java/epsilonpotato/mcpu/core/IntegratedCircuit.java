@@ -1,19 +1,22 @@
 package epsilonpotato.mcpu.core;
 
+import java.util.ArrayList;
 import java.util.function.Function;
 
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
 public abstract class IntegratedCircuit
 {
+    protected ArrayList<Triplet<Integer, Integer, Integer>> assocblocks;
     protected final int x, y, z, xsize, ysize, zsize;
     protected final ComponentOrientation orientation;
     protected final Player creator;
     protected final World world;
     protected IOPort[] io;
-
+    
 
     protected abstract ComponentOrientation[] getValidOrientations();
     protected abstract void onTick();
@@ -95,6 +98,18 @@ public abstract class IntegratedCircuit
         });
     }
 
+    public final void setAssociatedBlocks(Iterable<Block> blocks)
+    {
+        assocblocks = new ArrayList<>();
+        
+        for (Block b : blocks)
+        {
+            Location loc = b.getLocation();
+
+            assocblocks.add(new Triplet<>(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ()));
+        }
+    }
+    
     public final Player getCreator()
     {
         return creator;
@@ -110,17 +125,24 @@ public abstract class IntegratedCircuit
         return new Location(world, x, y, z);
     }
 
-    public final boolean testCollision (Location loc)
+    public final boolean testCollision(Location loc)
     {
         if (world.getName().equals(loc.getWorld().getName()))
         {
             int _x = loc.getBlockX(), _y = loc.getBlockY(), _z = loc.getBlockZ();
 
-            return (_x >= x) && (_x < x + xsize) &&
-                   (_y >= y) && (_y < y + xsize) &&
-                   (_z >= z) && (_z < z + zsize);
+            if ((assocblocks != null) && (assocblocks.size() > 0))
+            {
+                for (Triplet<Integer, Integer, Integer> pos : assocblocks)
+                    if ((pos.x == _x) && (pos.y == _y) && (pos.z == _z))
+                        return true;
+            }
+            else
+                return (_x >= x) && (_x < x + xsize) &&
+                       (_y >= y) && (_y < y + xsize) &&
+                       (_z >= z) && (_z < z + zsize);
         }
-        else
-            return false;
+
+        return false;
     }   
 }

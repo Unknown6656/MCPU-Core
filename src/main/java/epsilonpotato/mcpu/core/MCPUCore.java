@@ -15,7 +15,6 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
-import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -30,6 +29,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import epsilonpotato.mcpu.core.components.BinaryLogicGateFactory;
 import epsilonpotato.mcpu.core.components.SevenSegmentDisplayFactory;
 
 import static java.lang.Math.*;
@@ -44,7 +44,7 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
     
     
     @Override
-    public void onEnable()
+    public final void onEnable()
     {
         usagetext = "/mcpu command usage:\n" +
                     " list              - Lists all MCPU components in the current world\n" +
@@ -68,6 +68,12 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
         try
         {
             ComponentFactory.registerFactory("7seg", new SevenSegmentDisplayFactory());
+            ComponentFactory.registerFactory("and", new BinaryLogicGateFactory((x, y) -> x & y, "and"));
+            ComponentFactory.registerFactory("nand", new BinaryLogicGateFactory((x, y) -> ~(x & y), "nand"));
+            ComponentFactory.registerFactory("or", new BinaryLogicGateFactory((x, y) -> x | y, "or"));
+            ComponentFactory.registerFactory("nor", new BinaryLogicGateFactory((x, y) -> ~(x | y), "nor"));
+            ComponentFactory.registerFactory("xor", new BinaryLogicGateFactory((x, y) -> x ^ y, "xor"));
+            ComponentFactory.registerFactory("nxor", new BinaryLogicGateFactory((x, y) -> ~(x ^ y), "nxor"));
         }
         catch (Exception e)
         {
@@ -90,7 +96,7 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
                 ((EmulatedProcessor)ic).stop();
     }
     
-    public void onTick()
+    public final void onTick()
     {
         circuits.values().forEach(c ->
         {
@@ -171,11 +177,11 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
                     Print(sender, ChatColor.YELLOW, usagetext);
                     break;
                 case "add":
-                    String[] tmp = new String[args.length]; // the fuck? is the created array's size smaller than in C++ or .NET ?
+                    String[] tmp = new String[args.length - 1];
                     
                     // skip first element
                     for (int i = 1; i < args.length; ++i)
-                        tmp[i] = args[i - 1];
+                        tmp[i - 1] = args[i];
                     
                     addComponent(sender, tmp);
                     
@@ -257,14 +263,14 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
                     
                     break;
                 case "state":
-                    getIC(args, 1, sender, c -> sender.sendMessage("(" + c.getClass().getTypeName() + ") " + c.getState()));
+                    getIC(args, 1, sender, c -> sender.sendMessage("(" + c.getClass().getSimpleName() + ") " + c.getState()));
                     break;
                 case "list":
                     circuits.keySet().forEach((i) ->
                     {
                         IntegratedCircuit ic = circuits.get(i);
                         
-                        sender.sendMessage("[" + i + "]: (" + ic.getClass().getTypeName() + ")" + ic.getState());
+                        sender.sendMessage("[" + i + "]: (" + ic.getClass().getSimpleName() + ") " + ic.getState());
                     });
                     break;
                 default:
@@ -280,7 +286,6 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
     
     private void addComponent(CommandSender sender, String[] args)
     {
-        boolean canbuild = true;
         Player player = null;
         String icname;
         int cpusize = 0;
@@ -327,44 +332,69 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
         z = loc.getBlockZ();
         cpusize = max(3, min(cpusize, 16));
         
-        for (int i : circuits.keySet())
-        {
-            IntegratedCircuit ic = circuits.get(i);
-            double dist = Math.sqrt(ic.xsize * ic.xsize + ic.ysize * ic.ysize + ic.zsize * ic.zsize) + 2;
-            
-            if (Math.abs(ic.y - y) < ic.ysize)
-                if (Math.sqrt(Math.pow(ic.x - x, 2) + Math.pow(ic.y - y, 2) + Math.pow(ic.z - z, 2)) < dist)
-                {
-                    Error(sender, "The new processor/circuit cannot be placed here. It would be to close to the existing component no. " + i + ".");
-                    
-                    canbuild = false;
-                    
-                    break;
-                }
-        }
+        BlockPlacingContext context = new BlockPlacingContext(loc.getWorld());
         
-        if (canbuild)
-            try
+        try
+        {
+            ComponentFactory<IntegratedCircuit> fac = ComponentFactory.getFactoryByName(icname);
+            Triplet<Integer, Integer, Integer> size = fac.getEstimatedSize();
+            
+            for (int i : circuits.keySet())
             {
-                ComponentFactory<IntegratedCircuit> fac = ComponentFactory.getFactoryByName(icname);
-                IntegratedCircuit ic = fac.spawnComponent(this, player, loc.getWorld(), x, y, z, ComponentOrientation.NORTH, cpusize);
-                int num = circuits.size();
+                IntegratedCircuit ic = circuits.get(i);
                 
-                if (ic instanceof EmulatedProcessor)
-                    ((EmulatedProcessor)ic).onError = (p, s) -> Print(sender, ChatColor.YELLOW, "Processor " + num + " failed with the folling message:\n" + s);
-                
-                circuits.put(num, ic);
-                
-                Error(sender, "The component No. " + num + " has been created.");
+                if (size != null)
+                {
+                    if ((abs(ic.x - x) * 2 < (ic.xsize + size.x)) &&
+                        (abs(ic.y - y) * 2 < (ic.ysize + size.y)) &&
+                        (abs(ic.z - z) * 2 < (ic.zsize + size.z)))
+                    {
+                        Error(sender, "The new processor/circuit cannot be placed here. It would intersect the existing component no. " + i + ".");
+                        
+                        return;
+                    }
+                }
+                else if ((x < ic.x + ic.xsize) && (y < ic.y + ic.ysize))
+                {
+                    double dist = Math.sqrt(ic.xsize * ic.xsize + ic.ysize * ic.ysize + ic.zsize * ic.zsize) + 2;
+                    
+                    if (Math.abs(ic.y - y) < ic.ysize)
+                        if (Math.sqrt(Math.pow(ic.x - x, 2) + Math.pow(ic.y - y, 2) + Math.pow(ic.z - z, 2)) < dist)
+                        {
+                            Error(sender, "The new processor/circuit cannot be placed here. It would be to close to the existing component no. " + i + ".");
+                            
+                            return;
+                        }
+                }
             }
-            catch (InvalidOrientationException o)
-            {
-                Error(sender, o.getMessage());
-            }
-            catch (Exception e)
-            {
-                Error(sender, "The new component/circuit could not be created. The architecture or type '" + icname + "' is unknown.");
-            }
+            
+            IntegratedCircuit ic = fac.spawnComponent(context, this, player, x, y, z, ComponentOrientation.NORTH, cpusize);
+            int num = circuits.size();
+            
+            while (circuits.containsKey(num))
+                ++num;
+            
+            final int cnum = num; // java 8 being bitchy
+            
+            if (ic instanceof EmulatedProcessor)
+                ((EmulatedProcessor)ic).onError = (p, s) -> Print(sender, ChatColor.YELLOW, "Processor " + cnum + " failed with the folling message:\n" + s);
+            
+            circuits.put(cnum, ic);
+            
+            Error(sender, "The component No. " + cnum + " has been created.");
+        }
+        catch (InvalidOrientationException o)
+        {
+            context.rollback();
+            
+            Error(sender, o.getMessage());
+        }
+        catch (Exception e)
+        {
+            context.rollback();
+            
+            Error(sender, "The new component/circuit could not be created. The architecture or type '" + icname + "' is unknown.");
+        }
     }
     
     protected boolean CompileLoad(CommandSender sender, EmulatedProcessor core, URI source)
@@ -443,24 +473,12 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
     
     protected static void deleteRegion(World w, int x, int y, int z, int xs, int ys, int zs)
     {
+        BlockPlacingContext context = new BlockPlacingContext(w);
+        
         for (int i = 0; i < xs; ++i)
             for (int j = 0; j < zs; ++j)
                 for (int k = ys - 1; k >= 0; --k)
-                    SetBlock(w, x + i, y + k, z + j, Material.AIR);
-    }
-    
-    public static Block SetBlock(World w, int x, int y, int z, Material m)
-    {
-        Block b = new Location(w, x, y, z).getBlock();
-        
-        b.setType(m);
-        
-        return b;
-    }
-    
-    public static void SetBlock(World w, int x, int y, int z, Material m, Consumer<Block> f)
-    {
-        f.accept(SetBlock(w, x, y, z, m));
+                    context.addBlock(x + i, y + k, z + j, Material.AIR);
     }
     
     public static void Print(ChatColor c, String m)

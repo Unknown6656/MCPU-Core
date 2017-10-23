@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.Set;
 
 import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.entity.Player;
 
 
@@ -13,9 +12,12 @@ public abstract class ComponentFactory<T extends IntegratedCircuit>
     private static final HashMap<String, ComponentFactory<IntegratedCircuit>> register = new HashMap<>();
     
     
-
-    public abstract T spawnComponent(MCPUCore caller, Player p, World w, int x, int y, int z, ComponentOrientation or, int iocount) throws InvalidOrientationException;
-
+    public abstract T spawnComponent(BlockPlacingContext context, MCPUCore caller, Player p, int x, int y, int z, ComponentOrientation or, int iocount) throws InvalidOrientationException;
+    
+    public Triplet<Integer, Integer, Integer> getEstimatedSize()
+    {
+        return null;
+    }
     
     @SuppressWarnings("unchecked")
     public static final <U extends IntegratedCircuit> void registerFactory(String name, ComponentFactory<U> fac) throws Exception
@@ -26,10 +28,10 @@ public abstract class ComponentFactory<T extends IntegratedCircuit>
             register.put(name, (ComponentFactory<IntegratedCircuit>)fac);
     }
     
-    public static final IntegratedCircuit createComponent(MCPUCore caller, String name, Player p, Location l, ComponentOrientation or, int iocount)
+    public static final IntegratedCircuit createComponent(BlockPlacingContext context, MCPUCore caller, String name, Player p, Location l, ComponentOrientation or, int iocount)
             throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvalidOrientationException
     {
-        return getFactoryByName(name).spawnComponent(caller, p, l.getWorld(), l.getBlockX(), l.getBlockY(), l.getBlockZ(), or, iocount);
+        return getFactoryByName(name).spawnComponent(context, caller, p, l.getBlockX(), l.getBlockY(), l.getBlockZ(), or, iocount);
     }
     
     public static final ComponentFactory<IntegratedCircuit> getFactoryByName(String name)

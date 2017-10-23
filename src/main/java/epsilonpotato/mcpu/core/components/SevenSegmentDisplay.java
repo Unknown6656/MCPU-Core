@@ -2,6 +2,7 @@ package epsilonpotato.mcpu.core.components;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
@@ -54,9 +55,9 @@ public final class SevenSegmentDisplay extends IntegratedCircuit
     private byte ioval = 0x00;
     
     
-    public SevenSegmentDisplay(Player p, int x, int y, int z) throws InvalidOrientationException
+    public SevenSegmentDisplay(Player p, World w, int x, int y, int z) throws InvalidOrientationException
     {
-        super(p, new Location(p.getWorld(), x, y, z), new Triplet<>(9, 2, 12), 5, ComponentOrientation.NORTH);
+        super(p, new Location(w, x, y, z), new Triplet<>(9, 2, 12), 5, ComponentOrientation.NORTH);
     }
 
     private void updateDisplay()
@@ -99,7 +100,7 @@ public final class SevenSegmentDisplay extends IntegratedCircuit
     @Override
     public Location getIOLocation(int port)
     {
-        return new Location(world, x + 2 * (4 - port), y, z + 12);
+        return new Location(world, x + 2 * port, y, z + 12);
     }
 
     @Override
