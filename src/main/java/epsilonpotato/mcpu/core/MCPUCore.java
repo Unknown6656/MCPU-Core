@@ -12,12 +12,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.bukkit.ChatColor;
-import org.bukkit.DyeColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
-import org.bukkit.block.Sign;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -32,14 +30,15 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import epsilonpotato.mcpu.core.components.SevenSegmentDisplayFactory;
+
 import static java.lang.Math.*;
 
 
 public abstract class MCPUCore extends JavaPlugin implements Listener
 {
     public static final LinkedList<Triplet<Integer, Integer, Integer>> pendingexplosions = new LinkedList<>();
-    public static final HashMap<Integer, EmulatedProcessor> cores = new HashMap<>();
-    private static final int CPUSIZE = 3; // TODO fix
+    public static final HashMap<Integer, IntegratedCircuit> circuits = new HashMap<>();
     public static String usagetext;
     public static Logger log;
     
@@ -48,29 +47,49 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
     public void onEnable()
     {
         usagetext = "/mcpu command usage:\n" +
-                    " list              - Lists all available MCPU cores\n" +
-                    " add7seg           - Adds a new 7-segment-display to the world at the callers position\n" +
-                    " add <a> [io]      - Adds a new core with the architecture 'a' and io\n" +
+                    " list              - Lists all MCPU components in the current world\n" +
+                    " add <a> [io]      - Adds a new component with the architecture 'a' and io\n" +
                     "                     pin count 'io' to the world at the callers position\n" +
                     " add <x> <y> <z> <w> <a> [io]\n" +
-                    "                   - Adds a new core to the world 'w' at the given coordinates 'x|y|z'\n" +
+                    "                   - Adds a new component to the world 'w' at the given coordinates 'x|y|z'\n" +
                     "                     with the architecture 'a' and io pin count 'io' (default = 3x3 pins)" +
-                    " remove <n>        - Removes the core No. n\n" +
-                    " loadb[ook] <n>    - Loads the book hold in the hand into the core No. n\n" +
-                    " loadu[ri] <n> <u> - Loads the string acessible via the given URI u into the core No. n\n" +
+                    " remove <n>        - Removes the component No. n\n" +
+                    " loadb[ook] <n>    - Loads the book hold in the hand into the processor No. n\n" +
+                    " loadu[ri] <n> <u> - Loads the string acessible via the given URI u into the processor No. n\n" +
                     " start <n>         - Starts the processor core No. n\n" +
-                    " stop <n>          - Halts the core No. n\n" +
-                    " next <n>          - Forces the execution of the next instruction of core No. n" +
-                    " reset <n>         - Halts and resets the core No. n\n" +
-                    " state <n>         - Displays the state of core No. n\n" +
-                    " arch[itectures]   - Lists all available processor architectures";
+                    " stop <n>          - Halts the processor core No. n\n" +
+                    " next <n>          - Forces the execution of the next instruction of processor core No. n" +
+                    " reset <n>         - Halts and resets the processor core No. n\n" +
+                    " state <n>         - Displays the state of component No. n\n" +
+                    " arch[itectures]   - Lists all available processor architectures and components";
         
         log = getLogger();
         
-        registerProcessorArchitectures();
+        try
+        {
+            ComponentFactory.registerFactory("7seg", new SevenSegmentDisplayFactory());
+        }
+        catch (Exception e)
+        {
+        }
+        
+        registerIntegratedCircuits();
         
         getServer().getPluginManager().registerEvents(this, this);
-        getServer().getScheduler().scheduleSyncRepeatingTask(this, () -> cores.values().forEach(c ->
+        getServer().getScheduler().scheduleSyncRepeatingTask(this, this::onTick, 1, 1);
+    }
+    
+    @Override
+    public void onDisable()
+    {
+        for (IntegratedCircuit ic : circuits.values())
+            if (ic instanceof EmulatedProcessor)
+                ((EmulatedProcessor)ic).stop();
+    }
+    
+    public void onTick()
+    {
+        circuits.values().forEach(c ->
         {
             // UPDATE INPUT IO
             for (int io = 0, cnt = c.getIOCount(); io < cnt; ++io)
@@ -78,27 +97,20 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
                 {
                     int power = c.getIOLocation(io).getBlock().getBlockPower();
                     
-                    c.setIO(io, (byte)(power & 0xff));
+                    c.setIOValue(io, (byte)(power & 0xff));
                 }
-                
-            c.nextInstruction();
+            
+            c.onTick();
             
             // UPDATE OUTPUT IO
             for (int io = 0, cnt = c.getIOCount(); io < cnt; ++io)
                 if (c.getIODirection(io))
                 {
-                    boolean on = c.getIO(io) != 0;
+                    boolean on = c.getIOValue(io) != 0;
                     
                     c.getIOLocation(io).getBlock().setType(on ? Material.REDSTONE_BLOCK : Material.IRON_BLOCK);
                 }
-        }), 1, 1);
-    }
-    
-    @Override
-    public void onDisable()
-    {
-        for (EmulatedProcessor core : cores.values())
-            core.stop();
+        });
     }
     
     @EventHandler
@@ -106,13 +118,13 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
     {
         Location l = event.getBlock().getLocation();
         
-        for (EmulatedProcessor core : cores.values())
-            if (core.testCollision(l))
+        for (IntegratedCircuit ic : circuits.values())
+            if (ic.testCollision(l))
             {
                 event.setCancelled(true);
                 
                 if (event.getPlayer() != null)
-                    event.getPlayer().sendMessage(ChatColor.RED + "You cannot place a block on a registered CPU core.");
+                    event.getPlayer().sendMessage(ChatColor.RED + "You cannot place a block on a registered integrated circuit.");
             }
     }
     
@@ -121,17 +133,17 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
     {
         Location l = event.getBlock().getLocation();
         
-        for (EmulatedProcessor core : cores.values())
-            if (core.testCollision(l))
+        for (IntegratedCircuit ic : circuits.values())
+            if (ic.testCollision(l))
             {
                 event.setCancelled(true);
                 
                 if (event.getPlayer() != null)
-                    event.getPlayer().sendMessage(ChatColor.RED + "You cannot destroy a block from a registered CPU core.");
+                    event.getPlayer().sendMessage(ChatColor.RED + "You cannot destroy a block from a registered integrated circuit.");
             }
     }
     
-    public abstract void registerProcessorArchitectures();
+    public abstract void registerIntegratedCircuits();
     
     public abstract void onWorldSaveEvent(WorldSaveEvent event);
     
@@ -156,129 +168,37 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
                     Print(sender, ChatColor.YELLOW, usagetext);
                     break;
                 case "add":
-                {
-                    Player player = null;
-                    boolean canbuild = true;
-                    String architecture;
-                    int cpusize = 0;
-                    Location loc;
-                    int x, y, z;
-                    
-                    if (sender instanceof Player)
-                        try
-                        {
-                            player = (Player)sender;
-                            loc = player.getLocation();
-                            architecture = args[0];
-
-                            if (args.length > 1)
-                                cpusize = Integer.parseInt(args[1]);
-                        }
-                        catch (Exception e)
-                        {
-                            Print(sender, ChatColor.RED, "You must provide valid architecture name and cpu size for the creation of a new core.");
-                            
-                            break;
-                        }
-                    else
-                        try
-                        {
-                            x = Integer.parseInt(args[1]);
-                            y = Integer.parseInt(args[2]);
-                            z = Integer.parseInt(args[3]);
-                            loc = new Location(getServer().getWorld(args[4]), x, y, z);
-                            architecture = args[5];
-                            
-                            if (args.length > 6)
-                                cpusize = Integer.parseInt(args[6]);
-                        }
-                        catch (Exception e)
-                        {
-                            Print(sender, ChatColor.RED, "You must provide valid x-, y-, z-corrdinates, a valid world name, architecture name and a cpu size for the creation of a new core.");
-                            
-                            break;
-                        }
-                    
-                    x = loc.getBlockX();
-                    y = loc.getBlockY();
-                    z = loc.getBlockZ();
-                    cpusize = max(3, min(cpusize, 16));
-                    
-                    for (int i : cores.keySet())
-                    {
-                        EmulatedProcessor core = cores.get(i);
-                        double dist = Math.sqrt(core.xsize * core.xsize + core.ysize * core.ysize + core.zsize * core.zsize) + 2;
-                        
-                        if (Math.abs(core.y - y) < core.ysize)
-                            if (Math.sqrt(Math.pow(core.x - x, 2) + Math.pow(core.y - y, 2) + Math.pow(core.z - z, 2)) < dist)
-                            {
-                                Print(sender, ChatColor.RED, "The new processor core cannot be placed here. It would be to close to existing core no. " + i + ".");
-                                
-                                canbuild = false;
-                                
-                                break;
-                            }
-                    }
-                    
-                    if (canbuild)
-                        try
-                        {
-                            EmulatedProcessorFactory<EmulatedProcessor> fac = EmulatedProcessorFactory.getFactoryByArchitectureName(architecture);
-                            
-                            Tuple<Integer, EmulatedProcessor> t = SpawnCPU(player, x, y, z, loc.getWorld(), CPUSIZE, fac);
-                            
-                            t.y.onError = (p, s) -> Print(sender, ChatColor.YELLOW, "Processor " + t.x + " failed with the folling message:\n" + s);
-                            
-                            Print(sender, ChatColor.GREEN, "The core No. " + t.x + " has been created.");
-                        }
-                        catch (Exception e)
-                        {
-                            Print(sender, ChatColor.RED, "The new processor core could not be created. The architecture '" + architecture + "' is unknown.");
-                        }
-                }
-                    break;
-                case "add7seg":
-                    if (sender instanceof Player)
-                    {
-                        Player player = (Player)sender;
-                        Location loc = player.getLocation();
-                        Tuple<Integer, SevenSegmentDisplay> t = spawnDisplay(player, loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), loc.getWorld());
-                        
-                        Print(sender, ChatColor.GREEN, "The display No. " + t.x + " has been created.");
-                    }
-                    else
-                        Print(sender, ChatColor.RED, "You must be a player inside the world to place a 7-segment-display.");
-                    
+                    addComponent(sender, args);
                     break;
                 case "delete":
                 case "remove":
-                    GetInt(args, 1, sender, i ->
+                    getInt(args, 1, sender, i ->
                     {
-                        if (cores.containsKey(i))
+                        if (circuits.containsKey(i))
                         {
-                            EmulatedProcessor c = cores.remove(i);
+                            IntegratedCircuit c = circuits.remove(i);
                             
                             deleteRegion(c.world, c.x, c.y, c.z, c.xsize, c.ysize, c.zsize);
                         }
                         else
-                            Print(sender, ChatColor.RED, "The core No. " + i + " could not be found.");
+                            Print(sender, ChatColor.RED, "The component No. " + i + " could not be found.");
                     });
                     break;
                 case "reset":
-                    GetCore(args, 1, sender, c -> c.reset());
+                    getProcessor(args, 1, sender, proc -> proc.reset());
                     break;
                 case "stop":
-                    GetCore(args, 1, sender, c -> c.stop());
+                    getProcessor(args, 1, sender, proc -> proc.stop());
                     break;
                 case "start":
-                    GetCore(args, 1, sender, c -> c.start());
+                    getProcessor(args, 1, sender, proc -> proc.start());
                     break;
                 case "next":
-                    GetCore(args, 1, sender, c -> c.nextInstruction());
+                    getProcessor(args, 1, sender, proc -> proc.onTick());
                     break;
                 case "loadb":
                 case "loadbook":
-                    GetCore(args, 1, sender, c ->
+                    getProcessor(args, 1, sender, proc ->
                     {
                         if (sender instanceof Player)
                             try
@@ -292,7 +212,7 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
                                 
                                 String b64 = new String(Base64.getEncoder().encode(String.join("\n", book).getBytes()));
                                 
-                                CompileLoad(sender, c, new URI("raw:" + b64));
+                                CompileLoad(sender, proc, new URI("raw:" + b64));
                             }
                             catch (URISyntaxException e)
                             {
@@ -303,51 +223,140 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
                     break;
                 case "loadu":
                 case "loaduri":
-                    final String[] argv = args; // IDE throws some obscure error
-                    // if I replace 'argv' with
-                    // 'args' in this block
+                    final String[] argv = args;
                     
-                    GetCore(args, 1, sender, c ->
+                    getProcessor(args, 1, sender, proc ->
                     {
-                        String uri = GetArg(argv, 2, sender);
+                        String uri = getArg(argv, 2, sender);
                         
                         if (uri != null)
                             try
                             {
-                                if (!CompileLoad(sender, c, new URI(uri)))
-                                    Print(sender, ChatColor.RED, "The instructions could not be fetched from '" + uri + "'.");
+                                if (!CompileLoad(sender, proc, new URI(uri)))
+                                    Error(sender, "The instructions could not be fetched from '" + uri + "'.");
                             }
                             catch (URISyntaxException ex)
                             {
-                                Print(sender, ChatColor.RED, "The instructions could not be fetched from '" + uri + "'.");
+                                Error(sender, "The instructions could not be fetched from '" + uri + "'.");
                             }
                     });
                     break;
                 case "arch":
                 case "architectures":
-                    Print(sender, ChatColor.WHITE, String.join(", ", EmulatedProcessorFactory.getRegisteredArchitectures()));
+                    Print(sender, ChatColor.WHITE, String.join(", ", ComponentFactory.getRegisteredFactories()));
                     
                     break;
                 case "state":
-                    GetCore(args, 1, sender, c -> sender.sendMessage("(" + c.getClass().getTypeName() + ") " + c.getState()));
+                    getIC(args, 1, sender, c -> sender.sendMessage("(" + c.getClass().getTypeName() + ") " + c.getState()));
                     break;
                 case "list":
-                    cores.keySet().forEach((i) ->
+                    circuits.keySet().forEach((i) ->
                     {
-                        EmulatedProcessor c = cores.get(i);
+                        IntegratedCircuit ic = circuits.get(i);
                         
-                        sender.sendMessage("[" + i + "]: (" + c.getClass().getTypeName() + ")" + c.getState());
+                        sender.sendMessage("[" + i + "]: (" + ic.getClass().getTypeName() + ")" + ic.getState());
                     });
                     break;
                 default:
                     if (!onUnprocessedCommand(sender, command, label, args))
-                        Print(sender, ChatColor.RED, "The command '" + args[0].trim() + "' is unknown.");
+                        Error(sender, "The command '" + args[0].trim() + "' is unknown.");
             }
             
             return true;
         }
         else
             return false;
+    }
+    
+    private void addComponent(CommandSender sender, String[] args)
+    {
+        boolean canbuild = true;
+        Player player = null;
+        String icname;
+        int cpusize = 0;
+        Location loc;
+        int x, y, z;
+        
+        if (sender instanceof Player)
+            try
+            {
+                player = (Player)sender;
+                loc = player.getLocation();
+                icname = args[0];
+    
+                if (args.length > 1)
+                    cpusize = Integer.parseInt(args[1]);
+            }
+            catch (Exception e)
+            {
+                Error(sender, "You must provide valid architecture name (and io pin size) for the creation of a new component/processor.");
+                
+                return;
+            }
+        else
+            try
+            {
+                x = Integer.parseInt(args[1]);
+                y = Integer.parseInt(args[2]);
+                z = Integer.parseInt(args[3]);
+                loc = new Location(getServer().getWorld(args[4]), x, y, z);
+                icname = args[5];
+                
+                if (args.length > 6)
+                    cpusize = Integer.parseInt(args[6]);
+            }
+            catch (Exception e)
+            {
+                Error(sender, "You must provide valid x-, y-, z-corrdinates, a valid world name, architecture name (and io pin size) for the creation of a new component/processor.");
+                
+                return;
+            }
+        
+        x = loc.getBlockX();
+        y = loc.getBlockY();
+        z = loc.getBlockZ();
+        cpusize = max(3, min(cpusize, 16));
+        
+        for (int i : circuits.keySet())
+        {
+            IntegratedCircuit ic = circuits.get(i);
+            double dist = Math.sqrt(ic.xsize * ic.xsize + ic.ysize * ic.ysize + ic.zsize * ic.zsize) + 2;
+            
+            if (Math.abs(ic.y - y) < ic.ysize)
+                if (Math.sqrt(Math.pow(ic.x - x, 2) + Math.pow(ic.y - y, 2) + Math.pow(ic.z - z, 2)) < dist)
+                {
+                    Error(sender, "The new processor/circuit cannot be placed here. It would be to close to the existing component no. " + i + ".");
+                    
+                    canbuild = false;
+                    
+                    break;
+                }
+        }
+        
+        if (canbuild)
+            try
+            {
+                ComponentFactory<IntegratedCircuit> fac = ComponentFactory.getFactoryByName(icname);
+                IntegratedCircuit ic = fac.spawnComponent(this, player, loc.getWorld(), x, y, z, ComponentOrientation.NORTH, cpusize);
+                int num = circuits.size();
+                
+                if (ic instanceof EmulatedProcessor)
+                {
+                    ((EmulatedProcessor)ic).onError = (p, s) -> Print(sender, ChatColor.YELLOW, "Processor " + num + " failed with the folling message:\n" + s); 
+                }
+
+                circuits.put(num, ic);
+                
+                Error(sender, "The component No. " + num + " has been created.");
+            }
+            catch (InvalidOrientationException o)
+            {
+                Error(sender, o.getMessage());       
+            }
+            catch (Exception e)
+            {
+                Print(sender, ChatColor.RED, "The new component/circuit could not be created. The architecture or type '" + icname + "' is unknown.");
+            }
     }
     
     protected boolean CompileLoad(CommandSender sender, EmulatedProcessor core, URI source)
@@ -357,7 +366,7 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
         if (result)
             Print(sender, ChatColor.GREEN, "The code was successfully loaded into the core.");
         else
-            Print(sender, ChatColor.RED, "The code could not be loaded into the core.");
+            Error(sender, "The code could not be loaded into the core.");
         
         return result;
     }
@@ -377,20 +386,31 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
         return null;
     }
     
-    private void GetCore(final String[] argv, final int ndx, final CommandSender sender, Consumer<EmulatedProcessor> action)
+    private void getIC(final String[] argv, final int ndx, final CommandSender sender, Consumer<IntegratedCircuit> action)
     {
-        GetInt(argv, ndx, sender, i ->
+        getInt(argv, ndx, sender, i ->
         {
-            if (cores.containsKey(i))
-                action.accept(cores.get(i));
+            if (circuits.containsKey(i))
+                action.accept(circuits.get(i));
             else
                 sender.sendMessage(ChatColor.RED + "The core No. " + i + " could not be found.");
         });
     }
     
-    private static void GetInt(final String[] argv, final int ndx, final CommandSender sender, Consumer<Integer> action)
+    private void getProcessor(final String[] argv, final int ndx, final CommandSender sender, Consumer<EmulatedProcessor> action)
     {
-        String arg = GetArg(argv, ndx, sender);
+        getIC(argv, ndx, sender, ic ->
+        {
+            if (ic instanceof EmulatedProcessor)
+                action.accept((EmulatedProcessor)ic);
+            else
+                Error(sender, "The component in question must be an emulated processor to perform the current action.");
+        });
+    }
+    
+    private static void getInt(final String[] argv, final int ndx, final CommandSender sender, Consumer<Integer> action)
+    {
+        String arg = getArg(argv, ndx, sender);
         
         if (arg != null)
             try
@@ -403,7 +423,7 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
             }
     }
     
-    private static String GetArg(final String[] argv, final int ndx, final CommandSender sender)
+    private static String getArg(final String[] argv, final int ndx, final CommandSender sender)
     {
         if (ndx < argv.length)
             return argv[ndx];
@@ -413,7 +433,7 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
         return null;
     }
     
-    protected void deleteRegion(World w, int x, int y, int z, int xs, int ys, int zs)
+    protected static void deleteRegion(World w, int x, int y, int z, int xs, int ys, int zs)
     {
         for (int i = 0; i < xs; ++i)
             for (int j = 0; j < zs; ++j)
@@ -421,104 +441,7 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
                     SetBlock(w, x + i, y + k, z + j, Material.AIR);
     }
     
-    @SuppressWarnings("deprecation")
-    protected <T extends EmulatedProcessor> Tuple<Integer, T> SpawnCPU(Player p, int x, int y, int z, World w, int iosidecount, EmulatedProcessorFactory<T> fac)
-    {
-        int sidelength = iosidecount * 2 - 1;
-        
-        deleteRegion(w, x - 2, y - 1, z - 2, sidelength + 4, 3, sidelength + 4);
-        
-        // CREATE STONE BASE
-        for (int i = -2; i < sidelength + 2; ++i)
-            for (int j = -2; j < sidelength + 2; ++j)
-                SetBlock(w, x + i, y - 1, z + j, Material.STONE);
-        
-        // CREATE WOOL BODY
-        for (int i = 0; i < sidelength; ++i)
-            for (int j = 0; j < sidelength; ++j)
-                SetBlock(w, x + i, y, z + j, Material.WOOL, b -> b.setData(DyeColor.BLACK.getWoolData())); // TODO: fix deprecated calls
-        
-        // CREATE GOLD CORNER + SIGN + LEVER
-        int num = cores.size();
-        
-        SetBlock(w, x, y, z, Material.GOLD_BLOCK);
-        SetBlock(w, x + 1, y, z, Material.GOLD_BLOCK);
-        SetBlock(w, x - sidelength + 1, y + 1, z - sidelength, Material.LEVER, b ->
-        {
-            b.setData((byte)6);
-            b.getState().update();
-        });
-        SetBlock(w, x - sidelength, y + 1, z - sidelength, Material.SIGN_POST, b ->
-        {
-            Sign sign = (Sign)b.getState();
-            
-            sign.setLine(0, "CPU No. " + num);
-            sign.setLine(1, p.getDisplayName());
-            sign.update();
-        });
-   
-        // CREATE CONNECTOR PINS AND WIRE
-        for (int i = 0; i <= sidelength; i += 2)
-        {
-            SetBlock(w, x + i, y, z - 1, Material.IRON_BLOCK); // NORTH SIDE
-            SetBlock(w, x + i, y, z + sidelength, Material.IRON_BLOCK); // SOUTH SIDE
-            SetBlock(w, x - 1, y, z + i, Material.IRON_BLOCK); // WEST SIDE
-            SetBlock(w, x + sidelength, y, z + i, Material.IRON_BLOCK); // EAST SIDE
-            
-            SetBlock(w, x + i, y, z - 2, Material.REDSTONE_WIRE); // NORTH SIDE
-            SetBlock(w, x + i, y, z + sidelength + 1, Material.REDSTONE_WIRE); // SOUTH SIDE
-            SetBlock(w, x - 2, y, z + i, Material.REDSTONE_WIRE); // WEST SIDE
-            SetBlock(w, x + sidelength + 1, y, z + i, Material.REDSTONE_WIRE); // EAST SIDE
-        }
-
-        T proc = fac.createProcessor(p, new Location(w, x - 1, y, z - 1), new Triplet<>(sidelength + 2, 2, sidelength + 2), iosidecount * 4);
-        
-        cores.put(num, proc);
-        
-        return new Tuple<>(num, proc);
-    }
-
-    @SuppressWarnings("deprecation")
-    protected Tuple<Integer, SevenSegmentDisplay> spawnDisplay(Player p, int x, int y, int z, World w)
-    {
-        // CREATE STONE BASE
-        for (int i = 0; i < 9; ++i)
-            for (int j = 0; j < 14; ++j)
-                SetBlock(w, x + i, y - 1, z + j, Material.STONE);
-
-        // CREATE WOOL FRAME
-        for (int i = 0; i < 9; ++i)
-            for (int j = 0; j < 12; ++j)
-                SetBlock(w, x + i, y, z + j, Material.WOOL, b -> b.setData(DyeColor.BLACK.getWoolData())); // TODO: fix deprecated calls
-        
-        // CREATE GOLD BLOCK + LEVER
-        SetBlock(w, x, y, z, Material.GOLD_BLOCK);
-        SetBlock(w, x, y + 1, z, Material.LEVER, b ->
-        {
-            b.setData((byte)6);
-            b.getState().update();
-        });
-        
-        // CREATE PINS
-        for (int i = 0; i < 9; i += 2)
-        {
-            SetBlock(w, x + i, y, z + 12, Material.IRON_BLOCK);
-            SetBlock(w, x + i, y, z + 13, Material.REDSTONE_WIRE);
-        }
-        
-        return add(new SevenSegmentDisplay(p, x, y, z));
-    }
-    
-    private <T extends EmulatedProcessor> Tuple<Integer, T> add(T proc) 
-    {
-        int num = cores.size();
-
-        cores.put(num, proc);
-        
-        return new Tuple<Integer, T>(num, proc);
-    }
-    
-    protected static Block SetBlock(World w, int x, int y, int z, Material m)
+    public static Block SetBlock(World w, int x, int y, int z, Material m)
     {
         Block b = new Location(w, x, y, z).getBlock();
         
@@ -527,7 +450,7 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
         return b;
     }
     
-    protected static void SetBlock(World w, int x, int y, int z, Material m, Consumer<Block> f)
+    public static void SetBlock(World w, int x, int y, int z, Material m, Consumer<Block> f)
     {
         f.accept(SetBlock(w, x, y, z, m));
     }
@@ -543,5 +466,10 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
             s.sendMessage(c + m);
         
         log.log(Level.INFO, c + m);
+    }
+    
+    public static void Error(CommandSender s, String m)
+    {
+        Print(s, ChatColor.RED, m);
     }
 }

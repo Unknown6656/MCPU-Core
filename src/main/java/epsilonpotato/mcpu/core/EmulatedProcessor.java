@@ -1,72 +1,101 @@
 package epsilonpotato.mcpu.core;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.net.URI;
+import java.net.URL;
 import java.util.function.Consumer;
 
 import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
 
 
-public abstract class EmulatedProcessor
+public abstract class EmulatedProcessor extends IntegratedCircuit
 {
-    protected final int x, y, z, xsize, ysize, zsize;
-    protected final Player creator;
-    protected final World world;
-    protected final int iocount;
-    
+    protected boolean canrun;
+    protected long ticks;
     
     public EmulatedProcessorEvent<String> onError;
 
-    public abstract void nextInstruction();
 
-    public abstract void reset();
+    protected abstract void innerStop();
+    protected abstract void innerStart();
+    protected abstract void innerReset();
+    protected abstract void executeNextInstruction();
+    public abstract boolean load(String code);
 
-    public abstract void start();
 
-    public abstract void stop();
-
-    public abstract boolean load(URI source);
-
-    /**
-     * Gets the processor's io port
-     * @param port I/O port
-     */
-    public abstract byte getIO(int port);
-
-    /**
-     * Set's the processor's I/O port to the given value (only if `getIODirection(port) == false`)
-     * @param port I/O port
-     * @param value new I/O value in the range of [0..15]
-     */
-    public abstract void setIO(int port, byte value);
-
-    public abstract Location getIOLocation(int port);
-    
-    public abstract void setIODirection(int port, boolean direction);
-    
-    public abstract boolean getIODirection(int port);
-    
-    public abstract String getState();
-
-    public abstract long getTicksElapsed();
-
-    public abstract int getIOCount();
-
-    public boolean testCollision(Location loc)
+    public EmulatedProcessor(Player p, Location l, Triplet<Integer, Integer, Integer> size, int iocount, ComponentOrientation orient)
+            throws InvalidOrientationException
     {
-        if (world.getName().equals(loc.getWorld().getName()))
-        {
-            int _x = loc.getBlockX(), _y = loc.getBlockY(), _z = loc.getBlockZ();
+        super(p, l, size, iocount, orient);
+        
+        reset();
+    }
+    
+    public final void reset()
+    {
+        stop();
+    
+        ticks = 0;
+    
+        innerReset();
+    }
 
-            return (_x >= x) && (_x < x + xsize) &&
-                   (_y >= y) && (_y < y + xsize) &&
-                   (_z >= z) && (_z < z + zsize);
+    public final void start()
+    {
+        innerStart();
+        
+        canrun = true;   
+    }
+
+    public final void stop()
+    {
+        canrun = false;
+        
+        innerStop();
+    }
+
+    public boolean load(URI source)
+    {
+        StringBuilder code = new StringBuilder();
+
+        try
+        {
+            String s = null;
+            BufferedReader reader = new BufferedReader(new InputStreamReader(new URL(source.toString()).openStream()));
+            
+            while ((s = reader.readLine()) != null)
+                code.append('\n').append(s);
         }
-        else
-            return false;
+        catch (Exception e1)
+        {
+            if (source.getScheme().toLowerCase().equals("raw"))
+                code.append(source.getPath());
+            else
+                // TODO : dunno ?
+                return false;
+        }
+        
+        return load(code.toString());
+    }
+    
+    public final long getTicksElapsed()
+    {
+        return ticks;
+    }
+
+    @Override
+    public void onTick()
+    {
+        if (canrun)
+        {
+            executeNextInstruction();
+
+            ++ticks;
+        }
     }
 
     public final Location getNorthWestGoldBlock()
@@ -74,14 +103,9 @@ public abstract class EmulatedProcessor
         return getLocation().add(1, 0, 1);
     }
 
-    public final Location getLocation()
-    {
-        return new Location(world, x, y, z);
-    }
-
     protected final void getSign(Consumer<Sign> f)
     {
-        Block b = getNorthWestGoldBlock().add(0, 1, 0).getBlock();
+        Block b = getSignLocation().getBlock();
         
         if (b != null)
         {
@@ -91,22 +115,9 @@ public abstract class EmulatedProcessor
             s.update();
         }
     }
-    
-    public final Triplet<Integer, Integer, Integer> getSize()
+
+    public final Location getSignLocation()
     {
-        return new Triplet<>(xsize, ysize, zsize);
-    }
-    
-    public EmulatedProcessor(Player p, Location l, Triplet<Integer, Integer, Integer> size, int iocount)
-    {
-        creator = p;
-        world = l.getWorld();
-        x = l.getBlockX();
-        y = l.getBlockY();
-        z = l.getBlockZ();
-        xsize = size.x;
-        ysize = size.y;
-        zsize = size.z;
-        this.iocount = iocount;
+        return getLocation().add(1, 1, 1);
     }
 }
