@@ -5,6 +5,7 @@ package epsilonpotato.mcpu.core;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Base64;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.function.Consumer;
@@ -74,6 +75,9 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
         }
         
         registerIntegratedCircuits();
+        
+        Print(ChatColor.WHITE, "Registered architectures/components (" + ComponentFactory.getRegisteredFactories().size() + "):\n" +
+                               String.join("\n", ComponentFactory.getRegisteredFactories()));
         
         getServer().getPluginManager().registerEvents(this, this);
         getServer().getScheduler().scheduleSyncRepeatingTask(this, this::onTick, 1, 1);
@@ -168,7 +172,14 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
                     Print(sender, ChatColor.YELLOW, usagetext);
                     break;
                 case "add":
-                    addComponent(sender, args);
+                    String[] tmp = new String[args.length - 1];
+                    
+                    // skip first element
+                    for (int i = 1; i < args.length; ++i)
+                        tmp[i] = args[i - 1];
+                    
+                    addComponent(sender, tmp);
+                    
                     break;
                 case "delete":
                 case "remove":
@@ -218,7 +229,7 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
                             {
                             }
                         else
-                            Print(sender, ChatColor.RED, "You must be a player to run this command.");
+                            Error(sender, "You must be a player to run this command.");
                     });
                     break;
                 case "loadu":
@@ -283,7 +294,7 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
                 player = (Player)sender;
                 loc = player.getLocation();
                 icname = args[0];
-    
+                
                 if (args.length > 1)
                     cpusize = Integer.parseInt(args[1]);
             }
@@ -341,21 +352,19 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
                 int num = circuits.size();
                 
                 if (ic instanceof EmulatedProcessor)
-                {
-                    ((EmulatedProcessor)ic).onError = (p, s) -> Print(sender, ChatColor.YELLOW, "Processor " + num + " failed with the folling message:\n" + s); 
-                }
-
+                    ((EmulatedProcessor)ic).onError = (p, s) -> Print(sender, ChatColor.YELLOW, "Processor " + num + " failed with the folling message:\n" + s);
+                
                 circuits.put(num, ic);
                 
                 Error(sender, "The component No. " + num + " has been created.");
             }
             catch (InvalidOrientationException o)
             {
-                Error(sender, o.getMessage());       
+                Error(sender, o.getMessage());
             }
             catch (Exception e)
             {
-                Print(sender, ChatColor.RED, "The new component/circuit could not be created. The architecture or type '" + icname + "' is unknown.");
+                Error(sender, "The new component/circuit could not be created. The architecture or type '" + icname + "' is unknown.");
             }
     }
     

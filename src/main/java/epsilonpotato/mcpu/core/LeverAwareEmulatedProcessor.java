@@ -18,18 +18,20 @@ public abstract class LeverAwareEmulatedProcessor extends EmulatedProcessor
     }
     
     @Override
-    protected final void executeNextInstruction()
+    public final void onTick()
     {
-        if (canrun)
+        if (canrun && isEnabled())
         {
-            Block lever = getLeverLocation().getBlock();
+            executeNextInstruction();
 
-            if (lever.getType() == Material.LEVER ? lever.isBlockPowered() || (lever.getBlockPower() != 0) : true)
-            {
-                executeNextInstruction();
-
-                ++ticks;
-            }
+            ++ticks;
         }
+    }
+
+    public final boolean isEnabled()
+    {
+        Block lever = getLeverLocation().getBlock();
+        
+        return lever.getType() == Material.LEVER ? lever.isBlockPowered() || (lever.getBlockPower() != 0) : true;
     }
 }

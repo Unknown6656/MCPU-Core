@@ -85,7 +85,7 @@ public abstract class IntegratedCircuit
         return checkPort(port, p -> p.getDirection());
     }
 
-    protected final void setIODirection(int port, boolean direction)
+    public final void setIODirection(int port, boolean direction)
     {
         checkPort(port, p ->
         {
