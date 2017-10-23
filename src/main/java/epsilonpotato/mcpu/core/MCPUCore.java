@@ -5,7 +5,6 @@ package epsilonpotato.mcpu.core;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Base64;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.function.Consumer;
@@ -172,7 +171,7 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
                     Print(sender, ChatColor.YELLOW, usagetext);
                     break;
                 case "add":
-                    String[] tmp = new String[args.length - 1];
+                    String[] tmp = new String[args.length]; // the fuck? is the created array's size smaller than in C++ or .NET ?
                     
                     // skip first element
                     for (int i = 1; i < args.length; ++i)
