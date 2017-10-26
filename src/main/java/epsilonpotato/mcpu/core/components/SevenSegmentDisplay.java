@@ -1,5 +1,7 @@
 package epsilonpotato.mcpu.core.components;
 
+import java.io.IOException;
+
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -9,7 +11,9 @@ import org.bukkit.entity.Player;
 import epsilonpotato.mcpu.core.ComponentOrientation;
 import epsilonpotato.mcpu.core.IntegratedCircuit;
 import epsilonpotato.mcpu.core.InvalidOrientationException;
-import epsilonpotato.mcpu.core.Triplet;
+import epsilonpotato.mcpu.util.BinaryReader;
+import epsilonpotato.mcpu.util.BinaryWriter;
+import epsilonpotato.mcpu.util.Triplet;
 
 
 public final class SevenSegmentDisplay extends IntegratedCircuit
@@ -124,5 +128,19 @@ public final class SevenSegmentDisplay extends IntegratedCircuit
     protected ComponentOrientation[] getValidOrientations()
     {
         return new ComponentOrientation[] { ComponentOrientation.NORTH };
+    }
+
+    
+    @Override
+    protected void serializeComponentSpecific(BinaryWriter wr) throws IOException
+    {
+        wr.write(ioval);
+    }
+    
+
+    @Override
+    protected void deserializeComponentSpecific(BinaryReader rd) throws IOException
+    {
+        ioval = rd.readByte();
     }
 }

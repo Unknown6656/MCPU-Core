@@ -39,14 +39,31 @@ public final class BlockPlacingContext
     
     public void rollback()
     {
+        Block[] copy = addedblocks.toArray(new Block[addedblocks.size()]);
+        
         for (BlockState bs : oldblocks)
         {   
-            Location pos = bs.getLocation();
+            Location oldpos = bs.getLocation();
             
-            world.getBlockAt(pos);
-            
-            
-            // TODO load block state into world
+            for (int i = 0; i < copy.length; ++i)
+                if (copy[i] != null)
+                {
+                    Location newpos = copy[i].getLocation(); 
+                    
+                    if ((oldpos.getBlockX() == newpos.getBlockX()) &&
+                        (oldpos.getBlockY() == newpos.getBlockY()) &&
+                        (oldpos.getBlockZ() == newpos.getBlockZ()))
+                    {
+                        // Block target = world.getBlockAt(oldpos);
+                        //  target.setType(bs.getType());
+
+                        bs.update();
+                        
+                        copy[i] = null;
+                        
+                        break;
+                    }
+                }
         }
     }
     

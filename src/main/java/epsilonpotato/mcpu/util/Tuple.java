@@ -1,4 +1,4 @@
-package epsilonpotato.mcpu.core;
+package epsilonpotato.mcpu.util;
 
 public final class Tuple<X, Y>
 {

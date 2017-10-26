@@ -1,12 +1,21 @@
 package epsilonpotato.mcpu.core;
 
+import java.io.IOException;
+
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
+
+import epsilonpotato.mcpu.util.BinaryReader;
+import epsilonpotato.mcpu.util.BinaryWriter;
+import epsilonpotato.mcpu.util.Triplet;
 
 
 public abstract class SquareEmulatedProcessor extends LeverAwareEmulatedProcessor
 {
     protected final int sidecount; 
+
+    protected abstract void deserializeProcessorState(byte[] state) throws IOException;
+    protected abstract byte[] serializeProcessorState() throws IOException;
     
     
     public SquareEmulatedProcessor(Player p, Location l, int iosidecount)
@@ -59,5 +68,29 @@ public abstract class SquareEmulatedProcessor extends LeverAwareEmulatedProcesso
         }
         
         return new Location(world, x, this.y, z);
+    }
+
+    @Override
+    protected final void deserializeComponentSpecific(final BinaryReader rd) throws IOException
+    {
+        ticks = rd.readLong();
+        canrun = rd.readByte() != 0;
+        
+        int length = rd.readInt();
+        byte[] state = rd.readBytes(length);
+        
+        deserializeProcessorState(state);
+    }
+    
+    @Override
+    protected final void serializeComponentSpecific(final BinaryWriter wr) throws IOException
+    {
+        wr.write(ticks);
+        wr.write(canrun ? -1 : 0);
+        
+        byte[] state = serializeProcessorState();
+        
+        wr.write(state.length);
+        wr.write(state);
     }
 }

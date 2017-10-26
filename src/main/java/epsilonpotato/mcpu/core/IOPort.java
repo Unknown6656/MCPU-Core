@@ -1,5 +1,6 @@
 package epsilonpotato.mcpu.core;
 
+
 public final class IOPort
 {
     private boolean direction;

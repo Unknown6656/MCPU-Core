@@ -4,9 +4,12 @@ package epsilonpotato.mcpu.core;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -14,6 +17,7 @@ import java.util.logging.Logger;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Server;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -31,6 +35,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import epsilonpotato.mcpu.core.components.BinaryLogicGateFactory;
 import epsilonpotato.mcpu.core.components.SevenSegmentDisplayFactory;
+import epsilonpotato.mcpu.util.Triplet;
+import epsilonpotato.mcpu.util.Tuple;
 
 import static java.lang.Math.*;
 
@@ -41,28 +47,49 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
     public static final HashMap<Integer, IntegratedCircuit> circuits = new HashMap<>();
     public static String usagetext;
     public static Logger log;
+    public static Server srv;
     
+    
+    public MCPUCore(HashMap<String, Tuple<String, String>> usageoptions)
+    {   
+        if (usageoptions == null)
+            usageoptions = new HashMap<>();
+        
+        usageoptions.put("add", new Tuple<>("<a> [io]", "Adds a new component with the type 'a' and io pin count 'io' to the world at the callers position"));
+        usageoptions.put("addp", new Tuple<>("<a> [io]", "Adds a new processor with the architecture 'a' and io pin count 'io' to the world at the callers position"));
+        usageoptions.put("add", new Tuple<>("<x> <y> <z> <w> <a> [io]", "Adds a new component to the world 'w' at the given coordinates 'x|y|z' with the type 'a' and io pin count 'io' (default = 3x3 pins)"));
+        usageoptions.put("addp", new Tuple<>("<x> <y> <z> <w> <a> [io]", "Adds a new processor to the world 'w' at the given coordinates 'x|y|z' with the architecture 'a' and io pin count 'io' (default = 3x3 pins)"));
+        usageoptions.put("remove", new Tuple<>("<n>", "Removes the component No. n"));
+        usageoptions.put("loadb[ook]", new Tuple<>("<n>", "Loads the book hold in the hand into the processor No. n"));
+        usageoptions.put("loadu[ri]", new Tuple<>("<n> <u>", "Loads the string acessible via the given URI u into the processor No. n"));
+        usageoptions.put("start", new Tuple<>("<n>", "Starts the processor core No. n"));
+        usageoptions.put("stop", new Tuple<>("<n>", "Halts the processor core No. n"));
+        usageoptions.put("next", new Tuple<>("<n>", "Forces the execution of the next instruction of processor core No. n"));
+        usageoptions.put("reset", new Tuple<>("<n>", "Halts and resets the processor core No. n"));
+        usageoptions.put("state", new Tuple<>("<n>", "Displays the state of component No. n"));
+        usageoptions.put("list", new Tuple<>("", "Lists all MCPU components in the current world"));
+        usageoptions.put("arch[itectures]", new Tuple<>("", "Lists all available processor architectures and component types"));
+        
+        List<String> cmds = new ArrayList<String>(usageoptions.keySet());
+        StringBuilder sb = new StringBuilder();
+        Collections.sort(cmds);
+        
+        sb.append(ChatColor.GOLD).append(ChatColor.UNDERLINE).append("/mcpu").append(ChatColor.WHITE).append("command usage:\n");
+        
+        for (String cmd : cmds)
+        {
+            Tuple<String, String> nfo = usageoptions.get(cmd);
+            
+            sb.append(ChatColor.GOLD).append(cmd).append(ChatColor.GRAY).append(' ').append(nfo.x).append(ChatColor.WHITE).append(" - ").append(nfo.y).append('\n');
+        }
+        
+        usagetext = sb.toString();
+    }
     
     @Override
     public final void onEnable()
     {
-        usagetext = "/mcpu command usage:\n" +
-                    " list              - Lists all MCPU components in the current world\n" +
-                    " add <a> [io]      - Adds a new component with the architecture 'a' and io\n" +
-                    "                     pin count 'io' to the world at the callers position\n" +
-                    " add <x> <y> <z> <w> <a> [io]\n" +
-                    "                   - Adds a new component to the world 'w' at the given coordinates 'x|y|z'\n" +
-                    "                     with the architecture 'a' and io pin count 'io' (default = 3x3 pins)" +
-                    " remove <n>        - Removes the component No. n\n" +
-                    " loadb[ook] <n>    - Loads the book hold in the hand into the processor No. n\n" +
-                    " loadu[ri] <n> <u> - Loads the string acessible via the given URI u into the processor No. n\n" +
-                    " start <n>         - Starts the processor core No. n\n" +
-                    " stop <n>          - Halts the processor core No. n\n" +
-                    " next <n>          - Forces the execution of the next instruction of processor core No. n" +
-                    " reset <n>         - Halts and resets the processor core No. n\n" +
-                    " state <n>         - Displays the state of component No. n\n" +
-                    " arch[itectures]   - Lists all available processor architectures and components";
-        
+        srv = getServer();
         log = getLogger();
         
         try
@@ -84,8 +111,8 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
         Print(ChatColor.WHITE, "Registered architectures/components (" + ComponentFactory.getRegisteredFactories().size() + "):\n" +
                                String.join("\n", ComponentFactory.getRegisteredFactories()));
         
-        getServer().getPluginManager().registerEvents(this, this);
-        getServer().getScheduler().scheduleSyncRepeatingTask(this, this::onTick, 1, 1);
+        srv.getPluginManager().registerEvents(this, this);
+        srv.getScheduler().scheduleSyncRepeatingTask(this, this::onTick, 1, 1);
     }
     
     @Override
@@ -100,6 +127,9 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
     {
         circuits.values().forEach(c ->
         {
+            if (c == null)
+                return;
+            
             // UPDATE INPUT IO
             for (int io = 0, cnt = c.getIOCount(); io < cnt; ++io)
                 if (!c.getIODirection(io))
@@ -120,6 +150,11 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
                     c.getIOLocation(io).getBlock().setType(on ? Material.REDSTONE_BLOCK : Material.IRON_BLOCK);
                 }
         });
+        
+        // REMOVE ZOMBIES
+        for (int i : circuits.keySet().toArray(new Integer[0]))
+            if (circuits.get(i) == null)
+                circuits.remove(i);
     }
     
     @EventHandler
@@ -177,13 +212,16 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
                     Print(sender, ChatColor.YELLOW, usagetext);
                     break;
                 case "add":
+                case "addp":
+                case "addproc":
+                    boolean isproc = args[0].toLowerCase().contains("p");
                     String[] tmp = new String[args.length - 1];
                     
                     // skip first element
                     for (int i = 1; i < args.length; ++i)
                         tmp[i - 1] = args[i];
                     
-                    addComponent(sender, tmp);
+                    addComponent(sender, tmp, isproc);
                     
                     break;
                 case "delete":
@@ -284,7 +322,7 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
             return false;
     }
     
-    private void addComponent(CommandSender sender, String[] args)
+    private void addComponent(CommandSender sender, String[] args, boolean isproc)
     {
         Player player = null;
         String icname;
@@ -336,7 +374,7 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
         
         try
         {
-            ComponentFactory<IntegratedCircuit> fac = ComponentFactory.getFactoryByName(icname);
+            ComponentFactory<IntegratedCircuit> fac = ComponentFactory.getFactoryByName((isproc ? "processor.emulated." : "") + icname);
             Triplet<Integer, Integer, Integer> size = fac.getEstimatedSize();
             
             for (int i : circuits.keySet())
@@ -376,12 +414,18 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
             
             final int cnum = num; // java 8 being bitchy
             
-            if (ic instanceof EmulatedProcessor)
+            if (ic == null)
+            {
+                context.rollback();
+                
+                Error(sender, "A fucking critical error occured. This should not even be happening. Save your lives while you still can.....");
+            }
+            else if (ic instanceof EmulatedProcessor)
                 ((EmulatedProcessor)ic).onError = (p, s) -> Print(sender, ChatColor.YELLOW, "Processor " + cnum + " failed with the folling message:\n" + s);
             
             circuits.put(cnum, ic);
             
-            Error(sender, "The component No. " + cnum + " has been created.");
+            Print(sender, ChatColor.GREEN, "The component No. " + cnum + " has been created.");
         }
         catch (InvalidOrientationException o)
         {

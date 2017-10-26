@@ -5,6 +5,8 @@ import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
+import epsilonpotato.mcpu.util.Triplet;
+
 
 public abstract class LeverAwareEmulatedProcessor extends EmulatedProcessor
 {

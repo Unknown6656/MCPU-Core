@@ -13,8 +13,8 @@ import epsilonpotato.mcpu.core.ComponentFactory;
 import epsilonpotato.mcpu.core.ComponentOrientation;
 import epsilonpotato.mcpu.core.InvalidOrientationException;
 import epsilonpotato.mcpu.core.MCPUCore;
-import epsilonpotato.mcpu.core.Triplet;
-import epsilonpotato.mcpu.core.Tuple;
+import epsilonpotato.mcpu.util.Triplet;
+import epsilonpotato.mcpu.util.Tuple;
 
 import java.util.HashMap;
 import java.util.function.BiFunction;

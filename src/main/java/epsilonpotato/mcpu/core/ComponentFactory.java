@@ -6,6 +6,8 @@ import java.util.Set;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
+import epsilonpotato.mcpu.util.Triplet;
+
 
 public abstract class ComponentFactory<T extends IntegratedCircuit>
 {

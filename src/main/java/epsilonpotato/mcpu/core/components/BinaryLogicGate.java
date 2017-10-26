@@ -1,5 +1,7 @@
 package epsilonpotato.mcpu.core.components;
 
+import java.io.IOException;
+import java.io.Serializable;  
 import java.util.HashMap;
 import java.util.function.BiFunction;
 
@@ -9,14 +11,17 @@ import org.bukkit.entity.Player;
 import epsilonpotato.mcpu.core.ComponentOrientation;
 import epsilonpotato.mcpu.core.IntegratedCircuit;
 import epsilonpotato.mcpu.core.InvalidOrientationException;
-import epsilonpotato.mcpu.core.Triplet;
+import epsilonpotato.mcpu.util.BinaryReader;
+import epsilonpotato.mcpu.util.BinaryWriter;
+import epsilonpotato.mcpu.util.Serializer;
+import epsilonpotato.mcpu.util.Triplet;
 
 
 public class BinaryLogicGate extends IntegratedCircuit
 {
     static final HashMap<ComponentOrientation, int[]> ports;
-    private final BiFunction<Integer, Integer, Integer> func;
-    private final String name;
+    private BiFunction<Integer, Integer, Integer> func;
+    private String name;
 
 
     static
@@ -66,5 +71,27 @@ public class BinaryLogicGate extends IntegratedCircuit
     public final String getState()
     {
         return String.format("%s : %d, %d --> %d", name, io[0].getValue(), io[1].getValue(), io[2].getValue());
+    }
+
+    @Override
+    protected void serializeComponentSpecific(BinaryWriter wr) throws IOException
+    {
+        byte[] delegate = Serializer.serialize((BiFunction<Integer, Integer, Integer> & Serializable)func);
+        
+        wr.write(name);
+        wr.write(delegate.length);
+        wr.write(delegate);
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected void deserializeComponentSpecific(BinaryReader rd) throws IOException, ClassNotFoundException
+    {
+        name = rd.readString();
+        
+        int length = rd.readInt();
+        byte[] delegate = rd.readBytes(length);
+
+        func = (BiFunction<Integer, Integer, Integer>)Serializer.deserialize(delegate);
     }
 }

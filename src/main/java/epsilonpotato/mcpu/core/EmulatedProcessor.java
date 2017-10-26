@@ -1,6 +1,7 @@
 package epsilonpotato.mcpu.core;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URL;
@@ -10,6 +11,10 @@ import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
+
+import epsilonpotato.mcpu.util.BinaryReader;
+import epsilonpotato.mcpu.util.BinaryWriter;
+import epsilonpotato.mcpu.util.Triplet;
 
 
 public abstract class EmulatedProcessor extends IntegratedCircuit
@@ -119,5 +124,19 @@ public abstract class EmulatedProcessor extends IntegratedCircuit
     public final Location getSignLocation()
     {
         return getLocation().add(1, 1, 1);
+    }
+
+    @Override
+    protected void deserializeComponentSpecific(final BinaryReader rd) throws IOException
+    {
+        ticks = rd.readLong();
+        canrun = rd.readByte() != 0;
+    }
+    
+    @Override
+    protected void serializeComponentSpecific(final BinaryWriter wr) throws IOException
+    {
+        wr.write(ticks);
+        wr.write(canrun ? -1 : 0);
     }
 }
