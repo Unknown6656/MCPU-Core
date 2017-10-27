@@ -26,9 +26,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
-import org.bukkit.event.world.WorldInitEvent;
-import org.bukkit.event.world.WorldLoadEvent;
-import org.bukkit.event.world.WorldSaveEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -51,17 +48,17 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
     
     
     public MCPUCore(HashMap<String, Tuple<String, String>> usageoptions)
-    {   
+    {
         if (usageoptions == null)
             usageoptions = new HashMap<>();
-        
-        usageoptions.put("add", new Tuple<>("<a> [io]", "Adds a new component with the type 'a' and io pin count 'io' to the world at the callers position"));
-        usageoptions.put("addp", new Tuple<>("<a> [io]", "Adds a new processor with the architecture 'a' and io pin count 'io' to the world at the callers position"));
+
         usageoptions.put("add", new Tuple<>("<x> <y> <z> <w> <a> [io]", "Adds a new component to the world 'w' at the given coordinates 'x|y|z' with the type 'a' and io pin count 'io' (default = 3x3 pins)"));
         usageoptions.put("addp", new Tuple<>("<x> <y> <z> <w> <a> [io]", "Adds a new processor to the world 'w' at the given coordinates 'x|y|z' with the architecture 'a' and io pin count 'io' (default = 3x3 pins)"));
+        usageoptions.put("add", new Tuple<>("<a> [io]", "Adds a new component with the type 'a' and io pin count 'io' to the world at the callers position"));
+        usageoptions.put("addp", new Tuple<>("<a> [io]", "Adds a new processor with the architecture 'a' and io pin count 'io' to the world at the callers position"));
         usageoptions.put("remove", new Tuple<>("<n>", "Removes the component No. n"));
-        usageoptions.put("loadb[ook]", new Tuple<>("<n>", "Loads the book hold in the hand into the processor No. n"));
-        usageoptions.put("loadu[ri]", new Tuple<>("<n> <u>", "Loads the string acessible via the given URI u into the processor No. n"));
+        usageoptions.put("loadb", new Tuple<>("<n>", "Loads the book hold in the hand into the processor No. n"));
+        usageoptions.put("loadu", new Tuple<>("<n> <u>", "Loads the string acessible via the given URI u into the processor No. n"));
         usageoptions.put("start", new Tuple<>("<n>", "Starts the processor core No. n"));
         usageoptions.put("stop", new Tuple<>("<n>", "Halts the processor core No. n"));
         usageoptions.put("next", new Tuple<>("<n>", "Forces the execution of the next instruction of processor core No. n"));
@@ -80,7 +77,7 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
         {
             Tuple<String, String> nfo = usageoptions.get(cmd);
             
-            sb.append(ChatColor.GOLD).append(cmd).append(ChatColor.GRAY).append(' ').append(nfo.x).append(ChatColor.WHITE).append(" - ").append(nfo.y).append('\n');
+            sb.append(ChatColor.GOLD).append(cmd.trim()).append(ChatColor.GRAY).append(' ').append(nfo.x).append(ChatColor.WHITE).append(" - ").append(nfo.y).append('\n');
         }
         
         usagetext = sb.toString();
@@ -108,8 +105,8 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
         
         registerIntegratedCircuits();
         
-        Print(ChatColor.WHITE, "Registered architectures/components (" + ComponentFactory.getRegisteredFactories().size() + "):\n" +
-                               String.join("\n", ComponentFactory.getRegisteredFactories()));
+        Print(ChatColor.WHITE, "Registered architectures/components (" + ComponentFactory.getRegisteredFactories().size() + "):\n\t " +
+                               String.join(", ", ComponentFactory.getRegisteredFactories()));
         
         srv.getPluginManager().registerEvents(this, this);
         srv.getScheduler().scheduleSyncRepeatingTask(this, this::onTick, 1, 1);
@@ -187,13 +184,56 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
             }
     }
     
+    public List<String> onTabComplete(CommandSender sender, Command cmd, String[] args)
+    {
+        if (cmd.getName().equalsIgnoreCase("mcpu"))
+        {
+            LinkedList<String> list = new LinkedList<>();
+            
+            if (args.length == 0)
+                list.addAll(MCPUCoreCommand.getAllCommands());
+            else if (args.length == 1)
+                switch (MCPUCoreCommand.getByValue(args[0]))
+                {
+                    case ADD:
+                    case ADD_PROCESSOR:
+                    {
+                        list.addAll(ComponentFactory.getRegisteredFactories());
+                        
+                        break;
+                    }
+                    case NEXT:
+                    case RESET:
+                    case START:
+                    case STOP:
+                    case LOAD_URI:
+                    case LOAD_BOOK:
+                    {
+                        for (int id : circuits.keySet())
+                            if (circuits.get(id).isEmulatedProcessor())
+                                list.add("" + id);
+                        
+                        break;
+                    }
+                    case STATE:
+                    case DELETE:
+                    {
+                        for (int id : circuits.keySet())
+                            list.add("" + id);
+                        
+                        break;
+                    }
+                    default:
+                        return null;
+                }
+
+            return list;
+        }
+        else
+            return null;
+    }
+    
     public abstract void registerIntegratedCircuits();
-    
-    public abstract void onWorldSaveEvent(WorldSaveEvent event);
-    
-    public abstract void onWorldLoadEvent(WorldLoadEvent event);
-    
-    public abstract void onWorldInitEvent(WorldInitEvent event);
     
     public abstract boolean onUnprocessedCommand(CommandSender sender, Command command, String label, String[] args);
     
@@ -205,15 +245,13 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
             if (args.length == 0)
                 args = new String[] { "?" };
             
-            switch (args[0].toLowerCase().trim())
+            switch (MCPUCoreCommand.getByValue(args[0]))
             {
-                case "?":
-                case "help":
+                case HELP:
                     Print(sender, ChatColor.YELLOW, usagetext);
                     break;
-                case "add":
-                case "addp":
-                case "addproc":
+                case ADD:
+                case ADD_PROCESSOR:
                     boolean isproc = args[0].toLowerCase().contains("p");
                     String[] tmp = new String[args.length - 1];
                     
@@ -224,8 +262,7 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
                     addComponent(sender, tmp, isproc);
                     
                     break;
-                case "delete":
-                case "remove":
+                case DELETE:
                     getInt(args, 1, sender, i ->
                     {
                         if (circuits.containsKey(i))
@@ -238,20 +275,19 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
                             Print(sender, ChatColor.RED, "The component No. " + i + " could not be found.");
                     });
                     break;
-                case "reset":
+                case RESET:
                     getProcessor(args, 1, sender, proc -> proc.reset());
                     break;
-                case "stop":
+                case STOP:
                     getProcessor(args, 1, sender, proc -> proc.stop());
                     break;
-                case "start":
+                case START:
                     getProcessor(args, 1, sender, proc -> proc.start());
                     break;
-                case "next":
+                case NEXT:
                     getProcessor(args, 1, sender, proc -> proc.onTick());
                     break;
-                case "loadb":
-                case "loadbook":
+                case LOAD_BOOK:
                     getProcessor(args, 1, sender, proc ->
                     {
                         if (sender instanceof Player)
@@ -275,8 +311,7 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
                             Error(sender, "You must be a player to run this command.");
                     });
                     break;
-                case "loadu":
-                case "loaduri":
+                case LOAD_URI:
                     final String[] argv = args;
                     
                     getProcessor(args, 1, sender, proc ->
@@ -295,15 +330,14 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
                             }
                     });
                     break;
-                case "arch":
-                case "architectures":
+                case ARCH:
                     Print(sender, ChatColor.WHITE, String.join(", ", ComponentFactory.getRegisteredFactories()));
                     
                     break;
-                case "state":
+                case STATE:
                     getIC(args, 1, sender, c -> sender.sendMessage("(" + c.getClass().getSimpleName() + ") " + c.getState()));
                     break;
-                case "list":
+                case LIST:
                     circuits.keySet().forEach((i) ->
                     {
                         IntegratedCircuit ic = circuits.get(i);
@@ -438,19 +472,33 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
             context.rollback();
             
             Error(sender, "The new component/circuit could not be created. The architecture or type '" + icname + "' is unknown.");
+            
+            if (!isproc)
+                Error(sender, "If the component is an emulated processor, try adding the processor with the command '/mcpu addp " + icname + "'.");
         }
     }
     
     protected boolean CompileLoad(CommandSender sender, EmulatedProcessor core, URI source)
     {
-        boolean result = core.load(source);
-        
-        if (result)
-            Print(sender, ChatColor.GREEN, "The code was successfully loaded into the core.");
-        else
-            Error(sender, "The code could not be loaded into the core.");
-        
-        return result;
+        try
+        {
+            boolean result = core.load(source);
+            
+            if (result)
+                Print(sender, ChatColor.GREEN, "The code was successfully loaded into the core.");
+            else
+                Error(sender, "The code could not be loaded into the core.");
+            
+            return result;
+        }
+        catch (Exception e)
+        {
+            Error(sender, "A critical error occured.");
+            
+            e.printStackTrace();
+            
+            return false;
+        }
     }
     
     private static String[] GetBook(ItemStack stack)
@@ -462,7 +510,14 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
                     BookMeta bm = (BookMeta)stack.getItemMeta();
                     String[] lines = new String[0];
                     
-                    return bm.getPages().toArray(lines);
+                    lines = bm.getPages().toArray(lines);
+
+                    for (int i = 0; i < lines.length; ++i)
+                        lines[i] = ChatColor.stripColor(lines[i]);
+                    
+                    System.out.println(String.join(" / ", lines));
+                    
+                    return lines;
                 }
             
         return null;
@@ -483,7 +538,7 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
     {
         getIC(argv, ndx, sender, ic ->
         {
-            if (ic instanceof EmulatedProcessor)
+            if (ic.isEmulatedProcessor())
                 action.accept((EmulatedProcessor)ic);
             else
                 Error(sender, "The component in question must be an emulated processor to perform the current action.");
@@ -499,7 +554,7 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
             {
                 action.accept(Integer.parseInt(arg));
             }
-            catch (Exception e)
+            catch (NumberFormatException e)
             {
                 sender.sendMessage(ChatColor.RED + "The argument " + (ndx + 1) + " could not be interpreted as a numeric value.");
             }

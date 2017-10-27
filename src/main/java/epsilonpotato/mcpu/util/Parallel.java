@@ -52,20 +52,27 @@ public class Parallel
         ExecutorService executor = Executors.newFixedThreadPool(nCPU);
         List<Future<?>> futures = new LinkedList<Future<?>>();
         
-        for (int i = start; i < stop; i++)
-        {
-            final Integer k = i;
-            
-            Future<?> future = executor.submit(new Runnable()
+        if (start - stop < 4 * nCPU)
+            for (int i = start; i < stop; i++)
             {
-                public void run()
+                final int k = i;
+                
+                Future<?> future = executor.submit(() -> loopBody.accept(k));
+                
+                futures.add(future);
+            }
+        else
+            for (int i = 0; i < nCPU; ++i)
+            {
+                final int k = i;
+                final int block = (int)((stop - start) / (float)nCPU);
+
+                futures.add(executor.submit(() ->
                 {
-                    loopBody.accept(k);
-                }
-            });
-            
-            futures.add(future);
-        }
+                    for (int j = 0, l = k < nCPU - 1 ? block : stop - start - block * k; j < l; ++j)
+                        loopBody.accept(j + k * block + start);
+                }));
+            }
         
         for (Future<?> f : futures)
             try

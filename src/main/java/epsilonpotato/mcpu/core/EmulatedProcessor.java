@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URL;
+import java.util.Base64;
 import java.util.function.Consumer;
 
 import org.bukkit.Location;
@@ -65,26 +66,48 @@ public abstract class EmulatedProcessor extends IntegratedCircuit
 
     public boolean load(URI source)
     {
-        StringBuilder code = new StringBuilder();
+        String code;
 
         try
         {
             String s = null;
+            StringBuilder sb = new StringBuilder();
             BufferedReader reader = new BufferedReader(new InputStreamReader(new URL(source.toString()).openStream()));
             
             while ((s = reader.readLine()) != null)
-                code.append('\n').append(s);
+                sb.append('\n').append(s);
+            
+            code = sb.toString();
         }
         catch (Exception e1)
         {
             if (source.getScheme().toLowerCase().equals("raw"))
-                code.append(source.getPath());
+            {
+                String b64 = source.getPath();
+
+                System.out.println(b64);
+                
+                Base64.Decoder dec = Base64.getDecoder();
+                byte[] bytes = dec.decode(b64); 
+
+                System.out.println(bytes.length);
+                
+                code = new String(bytes);
+
+                System.out.println(code);
+            }
             else
                 // TODO : dunno ?
                 return false;
         }
         
-        return load(code.toString());
+        return load(code);
+    }
+    
+    @Override
+    public final boolean isEmulatedProcessor()
+    {
+        return true;
     }
     
     public final long getTicksElapsed()

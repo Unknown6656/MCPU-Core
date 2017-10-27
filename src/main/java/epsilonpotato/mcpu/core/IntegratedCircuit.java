@@ -155,6 +155,11 @@ public abstract class IntegratedCircuit
         return false;
     }   
 
+    public boolean isEmulatedProcessor()
+    {
+        return this instanceof EmulatedProcessor;
+    }
+    
     public byte[] serialize() throws IOException
     {
         ByteArrayOutputStream s = new ByteArrayOutputStream();
