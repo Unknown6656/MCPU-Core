@@ -4,8 +4,10 @@ import java.util.HashMap;
 import java.util.Set;
 
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 
+import epsilonpotato.mcpu.util.BlockHelper;
 import epsilonpotato.mcpu.util.Triplet;
 
 
@@ -16,7 +18,7 @@ public abstract class ComponentFactory<T extends IntegratedCircuit>
     
     public abstract T spawnComponent(BlockPlacingContext context, MCPUCore caller, Player p, int x, int y, int z, ComponentOrientation or, int iocount) throws InvalidOrientationException;
     
-    public Triplet<Integer, Integer, Integer> getEstimatedSize()
+    public Triplet<Integer, Integer, Integer> getEstimatedSize(ComponentOrientation or)
     {
         return null;
     }
@@ -34,6 +36,18 @@ public abstract class ComponentFactory<T extends IntegratedCircuit>
             throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvalidOrientationException
     {
         return getFactoryByName(name).spawnComponent(context, caller, p, l.getBlockX(), l.getBlockY(), l.getBlockZ(), or, iocount);
+    }
+    
+    protected static final void createBase(BlockPlacingContext context, int x, int y, int z, int xs, int zs)
+    {
+        for (int i = 0; i < xs; ++i)
+            for (int j = 0; j < zs; ++j)
+            {
+                Location loc = new Location(context.getWorld(), x + i, y, z + j);
+                
+                if (!BlockHelper.isOpaque(loc.getBlock()))
+                    context.addBlock(x + i, y, z + j, Material.STONE);
+            }
     }
     
     public static final ComponentFactory<IntegratedCircuit> getFactoryByName(String name)

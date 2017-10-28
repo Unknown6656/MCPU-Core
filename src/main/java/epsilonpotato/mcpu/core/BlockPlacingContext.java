@@ -72,7 +72,7 @@ public final class BlockPlacingContext
         return world;
     }
     
-    public ArrayList<Block> getBlock()
+    public ArrayList<Block> getBlocks()
     {
         return addedblocks;
     }

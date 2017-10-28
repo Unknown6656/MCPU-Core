@@ -32,4 +32,9 @@ public final class IOPort
     {
         this.direction = direction;
     }
+
+    public boolean isLow()
+    {
+        return getValue() == 0;
+    }
 }

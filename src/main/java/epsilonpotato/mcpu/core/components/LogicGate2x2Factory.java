@@ -5,7 +5,6 @@ package epsilonpotato.mcpu.core.components;
 import org.bukkit.DyeColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
 
 import epsilonpotato.mcpu.core.BlockPlacingContext;
@@ -20,10 +19,10 @@ import java.util.HashMap;
 import java.util.function.BiFunction;
 
 
-public final class BinaryLogicGateFactory extends ComponentFactory<BinaryLogicGate>
+public final class LogicGate2x2Factory extends ComponentFactory<LogicGate2x2>
 {
     private static final HashMap<ComponentOrientation, Tuple<Integer, Integer>> signloc;
-    private final BiFunction<Integer, Integer, Integer> func;
+    private final BiFunction<Integer, Integer, Tuple<Integer, Integer>> func;
     private final String name;
     
     static
@@ -36,7 +35,7 @@ public final class BinaryLogicGateFactory extends ComponentFactory<BinaryLogicGa
     }
     
     
-    public BinaryLogicGateFactory(BiFunction<Integer, Integer, Integer> func, String name)
+    public LogicGate2x2Factory(BiFunction<Integer, Integer, Tuple<Integer, Integer>> func, String name)
     {
         this.func = func;
         this.name = name;
@@ -45,24 +44,28 @@ public final class BinaryLogicGateFactory extends ComponentFactory<BinaryLogicGa
     @Override
     public Triplet<Integer, Integer, Integer> getEstimatedSize(ComponentOrientation or)
     {
-        return new Triplet<>(3, 1, 3);
+        return or.isNorthSouth() ? new Triplet<>(4, 1, 3) : new Triplet<>(3, 1, 4);
     }
     
     @Override
     @SuppressWarnings("deprecation")
-    public BinaryLogicGate spawnComponent(BlockPlacingContext context, MCPUCore caller, Player p, int x, int y, int z, ComponentOrientation or, int iocount) throws InvalidOrientationException
+    public LogicGate2x2 spawnComponent(BlockPlacingContext context, MCPUCore caller, Player p, int x, int y, int z, ComponentOrientation or, int iocount) throws InvalidOrientationException
     {
-        int[] pinloc = BinaryLogicGate.ports.get(or);
+        int[] pinloc = LogicGate2x2.ports.get(or);
         boolean ns = or.isNorthSouth();
         
         // CREATE WOOL FRAME
         for (int i = 0; i < 3; ++i)
+        {
             context.addBlock(x + (ns ? 1 : i), y, z + (ns ? i : 1), Material.WOOL, b -> b.setData(DyeColor.BLACK.getWoolData())); // TODO: fix deprecated calls
+            context.addBlock(x + (ns ? 2 : i), y, z + (ns ? i : 2), Material.WOOL, b -> b.setData(DyeColor.BLACK.getWoolData())); // TODO: fix deprecated calls
+        }
             
         // CREATE PINS
-        for (int i = 0; i < 3; ++i)
+        for (int i = 0; i < 4; ++i)
             context.addBlock(x + pinloc[2 * i], y, z + pinloc[2 * i + 1], Material.IRON_BLOCK);
-        
+
+        /*
         // CREATE SIGN
         context.addBlock(y + signloc.get(or).x, y, z + signloc.get(or).y, Material.WALL_SIGN, b ->
         {
@@ -73,7 +76,8 @@ public final class BinaryLogicGateFactory extends ComponentFactory<BinaryLogicGa
             sign.setLine(2, p.getDisplayName());
             sign.update();
         });
+        */
         
-        return new BinaryLogicGate(p, new Location(context.getWorld(), x, y, z), func, name, or);
+        return new LogicGate2x2(p, new Location(context.getWorld(), x, y, z), func, name, or);
     }
 }

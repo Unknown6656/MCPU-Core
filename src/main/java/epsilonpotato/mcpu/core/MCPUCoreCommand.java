@@ -9,7 +9,7 @@ public enum MCPUCoreCommand
 {
     HELP("?", "help"),
     ADD("add"),
-    ADD_PROCESSOR("addp", "addproc"),
+    ADD_PROCESSOR("addp", "addproc", "addprocessor"),
     DELETE("delete", "remove"),
     LOAD_BOOK("loadb", "loadbook"),
     LOAD_URI("loadu", "loaduri"),
@@ -20,6 +20,9 @@ public enum MCPUCoreCommand
     STATE("state"),
     LIST("list"),
     ARCH("arch", "architectures", "components"),
+    UNREGISTER("ureg", "unreg", "unregister"),
+    REGISTER("reg", "register"),
+    REGISTER_PROCESSOR("regp", "regproc", "regprocessor"),
     UNKNOWN();
     
     

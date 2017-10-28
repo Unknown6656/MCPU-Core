@@ -30,8 +30,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import epsilonpotato.mcpu.core.components.BinaryLogicGateFactory;
-import epsilonpotato.mcpu.core.components.SevenSegmentDisplayFactory;
+import epsilonpotato.mcpu.core.components.*;
 import epsilonpotato.mcpu.util.Triplet;
 import epsilonpotato.mcpu.util.Tuple;
 
@@ -57,6 +56,7 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
         usageoptions.put("add", new Tuple<>("<a> [io]", "Adds a new component with the type 'a' and io pin count 'io' to the world at the callers position"));
         usageoptions.put("addp", new Tuple<>("<a> [io]", "Adds a new processor with the architecture 'a' and io pin count 'io' to the world at the callers position"));
         usageoptions.put("remove", new Tuple<>("<n>", "Removes the component No. n"));
+        usageoptions.put("unregister", new Tuple<>("<n>", "Unregisters the component No. n without removing it from the world."));
         usageoptions.put("loadb", new Tuple<>("<n>", "Loads the book hold in the hand into the processor No. n"));
         usageoptions.put("loadu", new Tuple<>("<n> <u>", "Loads the string acessible via the given URI u into the processor No. n"));
         usageoptions.put("start", new Tuple<>("<n>", "Starts the processor core No. n"));
@@ -81,6 +81,25 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
         }
         
         usagetext = sb.toString();
+
+        try
+        {
+            ComponentFactory.registerFactory("7seg", new SevenSegmentDisplayFactory());
+            ComponentFactory.registerFactory("disp16", new WoolDisplay16x16Factory());
+            ComponentFactory.registerFactory("disp32", new WoolDisplay32x32Factory());
+            ComponentFactory.registerFactory("and", new BinaryLogicGateFactory((x, y) -> x & y, "and"));
+            ComponentFactory.registerFactory("nand", new BinaryLogicGateFactory((x, y) -> ~(x & y), "nand"));
+            ComponentFactory.registerFactory("or", new BinaryLogicGateFactory((x, y) -> x | y, "or"));
+            ComponentFactory.registerFactory("nor", new BinaryLogicGateFactory((x, y) -> ~(x | y), "nor"));
+            ComponentFactory.registerFactory("xor", new BinaryLogicGateFactory((x, y) -> x ^ y, "xor"));
+            ComponentFactory.registerFactory("nxor", new BinaryLogicGateFactory((x, y) -> ~(x ^ y), "nxor"));
+            ComponentFactory.registerFactory("hadd", new LogicGate2x2Factory((x, y) -> new Tuple<>(x ^ y, x & y), "hadd"));
+        }
+        catch (Exception e)
+        {
+        }
+        
+        registerIntegratedCircuits();
     }
     
     @Override
@@ -88,22 +107,6 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
     {
         srv = getServer();
         log = getLogger();
-        
-        try
-        {
-            ComponentFactory.registerFactory("7seg", new SevenSegmentDisplayFactory());
-            ComponentFactory.registerFactory("and", new BinaryLogicGateFactory((x, y) -> x & y, "and"));
-            ComponentFactory.registerFactory("nand", new BinaryLogicGateFactory((x, y) -> ~(x & y), "nand"));
-            ComponentFactory.registerFactory("or", new BinaryLogicGateFactory((x, y) -> x | y, "or"));
-            ComponentFactory.registerFactory("nor", new BinaryLogicGateFactory((x, y) -> ~(x | y), "nor"));
-            ComponentFactory.registerFactory("xor", new BinaryLogicGateFactory((x, y) -> x ^ y, "xor"));
-            ComponentFactory.registerFactory("nxor", new BinaryLogicGateFactory((x, y) -> ~(x ^ y), "nxor"));
-        }
-        catch (Exception e)
-        {
-        }
-        
-        registerIntegratedCircuits();
         
         Print(ChatColor.WHITE, "Registered architectures/components (" + ComponentFactory.getRegisteredFactories().size() + "):\n\t " +
                                String.join(", ", ComponentFactory.getRegisteredFactories()));
@@ -197,6 +200,7 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
                 {
                     case ADD:
                     case ADD_PROCESSOR:
+                    case REGISTER:
                     {
                         list.addAll(ComponentFactory.getRegisteredFactories());
                         
@@ -216,6 +220,7 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
                         break;
                     }
                     case STATE:
+                    case UNREGISTER:
                     case DELETE:
                     {
                         for (int id : circuits.keySet())
@@ -245,22 +250,38 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
             if (args.length == 0)
                 args = new String[] { "?" };
             
-            switch (MCPUCoreCommand.getByValue(args[0]))
+            MCPUCoreCommand cmd;
+            
+            switch (cmd = MCPUCoreCommand.getByValue(args[0]))
             {
                 case HELP:
                     Print(sender, ChatColor.YELLOW, usagetext);
                     break;
                 case ADD:
                 case ADD_PROCESSOR:
-                    boolean isproc = args[0].toLowerCase().contains("p");
+                case REGISTER:
+                case REGISTER_PROCESSOR:
                     String[] tmp = new String[args.length - 1];
                     
                     // skip first element
                     for (int i = 1; i < args.length; ++i)
                         tmp[i - 1] = args[i];
                     
-                    addComponent(sender, tmp, isproc);
+                    addComponent(sender, tmp, (cmd == MCPUCoreCommand.ADD_PROCESSOR) || (cmd == MCPUCoreCommand.REGISTER_PROCESSOR), (cmd == MCPUCoreCommand.REGISTER) || (cmd == MCPUCoreCommand.REGISTER_PROCESSOR));
                     
+                    break;
+                case UNREGISTER:
+                    getInt(args, 1, sender, i ->
+                    {
+                        if (circuits.containsKey(i))
+                        {
+                            circuits.remove(i);
+                            
+                            Print(sender, ChatColor.GREEN, "The component No. " + i + " has been unregistered from the world.");
+                        }
+                        else
+                            Error(sender, "The component No. " + i + " could not be found.");
+                    });
                     break;
                 case DELETE:
                     getInt(args, 1, sender, i ->
@@ -270,9 +291,11 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
                             IntegratedCircuit c = circuits.remove(i);
                             
                             deleteRegion(c.world, c.x, c.y, c.z, c.xsize, c.ysize, c.zsize);
+                            
+                            Print(sender, ChatColor.GREEN, "The component No. " + i + " has been removed from the world.");
                         }
                         else
-                            Print(sender, ChatColor.RED, "The component No. " + i + " could not be found.");
+                            Error(sender, "The component No. " + i + " could not be found.");
                     });
                     break;
                 case RESET:
@@ -300,9 +323,14 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
                                 if (book == null)
                                     book = GetBook(player.getInventory().getItemInOffHand());
                                 
-                                String b64 = new String(Base64.getEncoder().encode(String.join("\n", book).getBytes()));
-                                
-                                CompileLoad(sender, proc, new URI("raw:" + b64));
+                                if (book == null)
+                                    Error(sender, "You must be holding a writable/readable book in your main hand to load data into the processor.");
+                                else
+                                {
+                                    String b64 = new String(Base64.getEncoder().encode(String.join("\n", book).getBytes()));
+                                    
+                                    CompileLoad(sender, proc, new URI("data:text/plain;base64," + b64));
+                                }
                             }
                             catch (URISyntaxException e)
                             {
@@ -356,7 +384,7 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
             return false;
     }
     
-    private void addComponent(CommandSender sender, String[] args, boolean isproc)
+    private void addComponent(CommandSender sender, String[] args, boolean isproc, boolean register)
     {
         Player player = null;
         String icname;
@@ -408,8 +436,10 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
         
         try
         {
+            ComponentOrientation orient = ComponentOrientation.NORTH; // <---- TODO : change orientation depending on the player's orientation
+            
             ComponentFactory<IntegratedCircuit> fac = ComponentFactory.getFactoryByName((isproc ? "processor.emulated." : "") + icname);
-            Triplet<Integer, Integer, Integer> size = fac.getEstimatedSize();
+            Triplet<Integer, Integer, Integer> size = fac.getEstimatedSize(orient);
             
             for (int i : circuits.keySet())
             {
@@ -440,26 +470,32 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
                 }
             }
             
-            IntegratedCircuit ic = fac.spawnComponent(context, this, player, x, y, z, ComponentOrientation.NORTH, cpusize);
+            IntegratedCircuit ic = fac.spawnComponent(context, this, player, x, y, z, orient, cpusize);
             int num = circuits.size();
             
             while (circuits.containsKey(num))
                 ++num;
             
-            final int cnum = num; // java 8 being bitchy
+            final int fnum = num;
             
             if (ic == null)
             {
                 context.rollback();
                 
+                // some serious shit should be fixed if we ever arrive in this line ..... 
                 Error(sender, "A fucking critical error occured. This should not even be happening. Save your lives while you still can.....");
             }
             else if (ic instanceof EmulatedProcessor)
-                ((EmulatedProcessor)ic).onError = (p, s) -> Print(sender, ChatColor.YELLOW, "Processor " + cnum + " failed with the folling message:\n" + s);
+                ((EmulatedProcessor)ic).onError = (p, s) -> Print(sender, ChatColor.YELLOW, "Processor " + fnum + " failed with the folling message:\n" + s);
             
-            circuits.put(cnum, ic);
+            circuits.put(fnum, ic);
             
-            Print(sender, ChatColor.GREEN, "The component No. " + cnum + " has been created.");
+            if (register)
+                context.rollback();
+            else
+                ic.setAssociatedBlocks(context.getBlocks());
+            
+            Print(sender, ChatColor.GREEN, "The component No. " + fnum + " has been created.");
         }
         catch (InvalidOrientationException o)
         {
@@ -515,8 +551,6 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
                     for (int i = 0; i < lines.length; ++i)
                         lines[i] = ChatColor.stripColor(lines[i]);
                     
-                    System.out.println(String.join(" / ", lines));
-                    
                     return lines;
                 }
             
@@ -530,7 +564,7 @@ public abstract class MCPUCore extends JavaPlugin implements Listener
             if (circuits.containsKey(i))
                 action.accept(circuits.get(i));
             else
-                sender.sendMessage(ChatColor.RED + "The core No. " + i + " could not be found.");
+                sender.sendMessage(ChatColor.RED + "The component No. " + i + " could not be found.");
         });
     }
     

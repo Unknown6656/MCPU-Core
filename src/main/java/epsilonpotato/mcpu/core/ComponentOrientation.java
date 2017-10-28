@@ -21,6 +21,10 @@ public enum ComponentOrientation
             map.put(or.value, or);
     }
     
+    public boolean isNorthSouth()
+    {
+        return (this == ComponentOrientation.NORTH) || (this == ComponentOrientation.SOUTH) || (this == ComponentOrientation.UPRIGHT_NORTH_SOUTH);
+    }
     
     private ComponentOrientation(byte value)
     {

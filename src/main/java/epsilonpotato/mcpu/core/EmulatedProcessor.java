@@ -81,20 +81,16 @@ public abstract class EmulatedProcessor extends IntegratedCircuit
         }
         catch (Exception e1)
         {
-            if (source.getScheme().toLowerCase().equals("raw"))
+            if (source.getScheme().toLowerCase().equals("data"))
             {
-                String b64 = source.getPath();
-
-                System.out.println(b64);
+                String b64 = source.toString();
+                int commandx = b64.indexOf(',');
                 
+                b64 = b64.substring(commandx + 1);
+
                 Base64.Decoder dec = Base64.getDecoder();
-                byte[] bytes = dec.decode(b64); 
 
-                System.out.println(bytes.length);
-                
-                code = new String(bytes);
-
-                System.out.println(code);
+                code = new String(dec.decode(b64));
             }
             else
                 // TODO : dunno ?

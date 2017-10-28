@@ -148,7 +148,7 @@ public abstract class IntegratedCircuit
             }
             else
                 return (_x >= x) && (_x < x + xsize) &&
-                       (_y >= y) && (_y < y + xsize) &&
+                       (_y >= y) && (_y < y + ysize) &&
                        (_z >= z) && (_z < z + zsize);
         }
 

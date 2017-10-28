@@ -28,11 +28,7 @@ public abstract class SquareEmulatedProcessorFactory<T extends SquareEmulatedPro
         z += 1;
         
         deleteRegion(context.getWorld(), x - 2, y - 1, z - 2, sidelength + 4, 3, sidelength + 4);
-        
-        // CREATE STONE BASE
-        for (int i = -2; i < sidelength + 2; ++i)
-            for (int j = -2; j < sidelength + 2; ++j)
-                context.addBlock(x + i, y - 1, z + j, Material.STONE);
+        createBase(context, x - 2, y - 1, z - 2, sidelength + 4, sidelength + 4);
         
         // CREATE WOOL BODY
         for (int i = 0; i < sidelength; ++i)

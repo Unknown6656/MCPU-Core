@@ -36,7 +36,7 @@ public final class SevenSegmentDisplay extends IntegratedCircuit
      * 13 = 0 | 5
      * 
      */
-    private static final short[] SegmentMap = new short[] { 0xfc, 0x60, 0xda, 0xf2, 0x66, 0xb6, 0xbe, 0xd0, 0xfe, 0xf6, 0xee, 0x3e, 0x1a, 0x7a, 0x9e, 0x8e };
+    private static final short[] SegmentMap = new short[] { 0xfc, 0x60, 0xda, 0xf2, 0x66, 0xb6, 0xbe, 0xe0, 0xfe, 0xf6, 0xee, 0x3e, 0x9c, 0x7a, 0x9e, 0x8e };
     private static final byte[][] PixelMap = new byte[][]
     {
         { 11, 12, 13 }, // 0
@@ -55,7 +55,7 @@ public final class SevenSegmentDisplay extends IntegratedCircuit
         { 10 }, // 13
     };
     private static final Material materialOn = Material.REDSTONE_BLOCK;
-    private static final Material materialOff = Material.STONE;
+    private static final Material materialOff = Material.NETHER_BRICK;
     private byte ioval = 0x00;
     
     
