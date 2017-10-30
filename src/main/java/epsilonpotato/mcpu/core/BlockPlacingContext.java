@@ -36,6 +36,16 @@ public final class BlockPlacingContext
     {
         f.accept(addBlock(x, y, z, m));
     }
+
+    public Block addBlock(Location loc, Material m)
+    {
+        return addBlock(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), m);
+    }
+
+    public void addBlock(Location loc, Material m, Consumer<Block> f)
+    {
+        f.accept(addBlock(loc, m));   
+    }
     
     public void rollback()
     {
@@ -76,4 +86,5 @@ public final class BlockPlacingContext
     {
         return addedblocks;
     }
+
 }

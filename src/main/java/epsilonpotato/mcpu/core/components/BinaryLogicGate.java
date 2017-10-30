@@ -19,7 +19,7 @@ import epsilonpotato.mcpu.util.Triplet;
 
 public class BinaryLogicGate extends IntegratedCircuit
 {
-    static final HashMap<ComponentOrientation, int[]> ports;
+    public static final HashMap<ComponentOrientation, int[]> ports;
     private BiFunction<Integer, Integer, Integer> func;
     private String name;
 

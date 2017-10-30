@@ -3,6 +3,7 @@ package epsilonpotato.mcpu.core;
 import java.util.HashMap;
 import java.util.Set;
 
+import org.bukkit.DyeColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -48,6 +49,15 @@ public abstract class ComponentFactory<T extends IntegratedCircuit>
                 if (!BlockHelper.isOpaque(loc.getBlock()))
                     context.addBlock(x + i, y, z + j, Material.STONE);
             }
+    }
+    
+    @SuppressWarnings("deprecation")
+    protected static final void createWoolFrame(BlockPlacingContext context, int x, int y, int z, int xs, int ys, int zs)
+    {
+        for (int i = 0; i < xs; ++i)
+            for (int j = 0; j < zs; ++j)
+                for (int k = 0; k < ys; ++k)
+                    context.addBlock(x + i, y + k, z + j, Material.WOOL, b -> b.setData(DyeColor.BLACK.getWoolData())); // TODO: fix deprecated calls
     }
     
     public static final ComponentFactory<IntegratedCircuit> getFactoryByName(String name)

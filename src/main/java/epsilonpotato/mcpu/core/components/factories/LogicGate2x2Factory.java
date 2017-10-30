@@ -1,5 +1,5 @@
 
-package epsilonpotato.mcpu.core.components;
+package epsilonpotato.mcpu.core.components.factories;
 
 
 import org.bukkit.DyeColor;
@@ -12,17 +12,18 @@ import epsilonpotato.mcpu.core.ComponentFactory;
 import epsilonpotato.mcpu.core.ComponentOrientation;
 import epsilonpotato.mcpu.core.InvalidOrientationException;
 import epsilonpotato.mcpu.core.MCPUCore;
+import epsilonpotato.mcpu.core.components.LogicGate2x2;
 import epsilonpotato.mcpu.util.Triplet;
 import epsilonpotato.mcpu.util.Tuple;
 
 import java.util.HashMap;
-import java.util.function.BiFunction;
+import java.util.function.Consumer;
 
 
 public final class LogicGate2x2Factory extends ComponentFactory<LogicGate2x2>
 {
     private static final HashMap<ComponentOrientation, Tuple<Integer, Integer>> signloc;
-    private final BiFunction<Integer, Integer, Tuple<Integer, Integer>> func;
+    private final Consumer<Tuple<int[], byte[]>> func;
     private final String name;
     
     static
@@ -35,7 +36,7 @@ public final class LogicGate2x2Factory extends ComponentFactory<LogicGate2x2>
     }
     
     
-    public LogicGate2x2Factory(BiFunction<Integer, Integer, Tuple<Integer, Integer>> func, String name)
+    public LogicGate2x2Factory(Consumer<Tuple<int[], byte[]>> func, String name)
     {
         this.func = func;
         this.name = name;

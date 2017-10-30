@@ -1,6 +1,5 @@
-package epsilonpotato.mcpu.core.components;
+package epsilonpotato.mcpu.core.components.factories;
 
-import org.bukkit.DyeColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 
@@ -9,13 +8,13 @@ import epsilonpotato.mcpu.core.ComponentFactory;
 import epsilonpotato.mcpu.core.ComponentOrientation;
 import epsilonpotato.mcpu.core.InvalidOrientationException;
 import epsilonpotato.mcpu.core.MCPUCore;
+import epsilonpotato.mcpu.core.components.SevenSegmentDisplay;
 import epsilonpotato.mcpu.util.Triplet;
 
 
 public final class SevenSegmentDisplayFactory extends ComponentFactory<SevenSegmentDisplay>
 {
     @Override
-    @SuppressWarnings("deprecation")
     public SevenSegmentDisplay spawnComponent(BlockPlacingContext context, MCPUCore caller, Player p, int x, int y, int z, ComponentOrientation or, int iocount)
             throws InvalidOrientationException
     {
@@ -23,12 +22,8 @@ public final class SevenSegmentDisplayFactory extends ComponentFactory<SevenSegm
         
 
         createBase(context, x, y - 1, z, 9, 13);
+        createWoolFrame(context, x, y, z, 9, 1, 11);
 
-        // CREATE WOOL FRAME
-        for (int i = 0; i < 9; ++i)
-            for (int j = 0; j < 11; ++j)
-                context.addBlock(x + i, y, z + j, Material.WOOL, b -> b.setData(DyeColor.BLACK.getWoolData())); // TODO: fix deprecated calls
-        
         // CREATE PINS
         for (int i = 0; i < 9; i += 2)
         {

@@ -1,6 +1,5 @@
-package epsilonpotato.mcpu.core.components;
+package epsilonpotato.mcpu.core.components.factories;
 
-import org.bukkit.DyeColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -10,22 +9,18 @@ import epsilonpotato.mcpu.core.ComponentFactory;
 import epsilonpotato.mcpu.core.ComponentOrientation;
 import epsilonpotato.mcpu.core.InvalidOrientationException;
 import epsilonpotato.mcpu.core.MCPUCore;
+import epsilonpotato.mcpu.core.components.WoolDisplay32x32;
 import epsilonpotato.mcpu.util.Triplet;
 
 public final class WoolDisplay32x32Factory extends ComponentFactory<WoolDisplay32x32>
 {
     @Override
-    @SuppressWarnings("deprecation")
     public WoolDisplay32x32 spawnComponent(BlockPlacingContext context, MCPUCore caller, Player p, int x, int y, int z, ComponentOrientation or, int iocount) throws InvalidOrientationException
     {
         // TODO : display orientation
 
         createBase(context, x - 1, y - 1, z, 36, 34);
-
-        // CREATE WOOL FRAME
-        for (int i = 1; i < 35; ++i)
-            for (int j = 0; j < 34; ++j)
-                context.addBlock(x + i, y, z + j, Material.WOOL, b -> b.setData(DyeColor.BLACK.getWoolData())); // TODO: fix deprecated calls
+        createWoolFrame(context, x + 1, y, z, 34, 1, 34);
         
         WoolDisplay32x32 wdisp = new WoolDisplay32x32(p, context.getWorld(), x, y, z);
         
@@ -34,7 +29,7 @@ public final class WoolDisplay32x32Factory extends ComponentFactory<WoolDisplay3
         {
             Location loc = wdisp.getIOLocation(i);
             
-            context.addBlock(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), Material.IRON_BLOCK);
+            context.addBlock(loc, Material.IRON_BLOCK);
             context.addBlock(loc.getBlockX() - 1, loc.getBlockY(), loc.getBlockZ(), Material.REDSTONE_WIRE);
         }
         

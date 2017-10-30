@@ -3,7 +3,7 @@ package epsilonpotato.mcpu.core.components;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.HashMap;
-import java.util.function.BiFunction;
+import java.util.function.Consumer;
 
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -19,8 +19,9 @@ import epsilonpotato.mcpu.util.Tuple;
 
 public class LogicGate2x2 extends IntegratedCircuit
 {
-    static final HashMap<ComponentOrientation, int[]> ports;
-    private BiFunction<Integer, Integer, Tuple<Integer, Integer>> func;
+    public static final HashMap<ComponentOrientation, int[]> ports;
+    private Consumer<Tuple<int[], byte[]>> func;
+    private byte[] state = new byte[16];
     private String name;
     
 
@@ -33,7 +34,7 @@ public class LogicGate2x2 extends IntegratedCircuit
         ports.put(ComponentOrientation.EAST, new int[] { 0, 3, 2, 3, 0, 0, 2, 0 });
     }
 
-    public LogicGate2x2(Player creator, Location loc, BiFunction<Integer, Integer, Tuple<Integer, Integer>> func, String name, ComponentOrientation orient) throws InvalidOrientationException
+    public LogicGate2x2(Player creator, Location loc, Consumer<Tuple<int[], byte[]>> func, String name, ComponentOrientation orient) throws InvalidOrientationException
     {
         super(creator, loc, orient.isNorthSouth() ? new Triplet<>(4, 1, 3) : new Triplet<>(3, 1, 4), 4, orient);
         
@@ -55,12 +56,12 @@ public class LogicGate2x2 extends IntegratedCircuit
     @Override
     protected final void onTick()
     {
-        int x = io[0].getValue();
-        int y = io[1].getValue();
-        Tuple<Integer, Integer> res = func.apply(x, y);
+        int[] data = new int[] { io[0].getValue(), io[1].getValue(), 0, 0 };
+        
+        func.accept(new Tuple<int[], byte[]>(data, state));
 
-        io[2].setValue((res.x & 0xff) != 0 ? 15 : 0);
-        io[3].setValue((res.y & 0xff) != 0 ? 15 : 0);
+        io[2].setValue((data[2] & 0xff) != 0 ? 15 : 0);
+        io[3].setValue((data[3] & 0xff) != 0 ? 15 : 0);
     }
 
     @Override
@@ -78,11 +79,12 @@ public class LogicGate2x2 extends IntegratedCircuit
     @Override
     protected void serializeComponentSpecific(BinaryWriter wr) throws IOException
     {
-        byte[] delegate = Serializer.serialize((BiFunction<Integer, Integer, Tuple<Integer, Integer>> & Serializable)func);
+        byte[] delegate = Serializer.serialize((Consumer<Tuple<int[], byte[]>> & Serializable)func);
         
         wr.write(name);
         wr.write(delegate.length);
         wr.write(delegate);
+        wr.write(state);
     }
 
     @Override
@@ -94,6 +96,7 @@ public class LogicGate2x2 extends IntegratedCircuit
         int length = rd.readInt();
         byte[] delegate = rd.readBytes(length);
 
-        func = (BiFunction<Integer, Integer, Tuple<Integer, Integer>>)Serializer.deserialize(delegate);
+        func = (Consumer<Tuple<int[], byte[]>>)Serializer.deserialize(delegate);
+        state = rd.readBytes(16);
     }
 }
