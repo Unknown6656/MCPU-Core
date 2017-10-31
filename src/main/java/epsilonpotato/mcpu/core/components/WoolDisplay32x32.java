@@ -24,6 +24,7 @@ import epsilonpotato.mcpu.util.Triplet;
  * */
 public final class WoolDisplay32x32 extends IntegratedCircuit
 {
+    private static final long serialVersionUID = 8742455457965007648L;
     protected static final Material base_material = Material.CONCRETE;
     private byte[][] matrix = new byte[32][32];
             

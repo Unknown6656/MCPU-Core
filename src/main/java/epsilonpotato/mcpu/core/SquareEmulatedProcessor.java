@@ -12,8 +12,10 @@ import epsilonpotato.mcpu.util.Triplet;
 
 public abstract class SquareEmulatedProcessor extends LeverAwareEmulatedProcessor
 {
+    private static final long serialVersionUID = -78130561939840819L;
     protected final int sidecount; 
 
+    
     protected abstract void deserializeProcessorState(byte[] state) throws IOException;
     protected abstract byte[] serializeProcessorState() throws IOException;
     

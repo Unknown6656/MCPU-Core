@@ -1,8 +1,10 @@
 package epsilonpotato.mcpu.core;
 
+import java.io.Serializable;
 
-public final class IOPort
+public final class IOPort implements Serializable
 {
+    private static final long serialVersionUID = -3510786531367958282L;
     private boolean direction;
     private byte value;
     

@@ -5,12 +5,12 @@ package epsilonpotato.mcpu.core;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -31,6 +31,9 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.world.WorldInitEvent;
+import org.bukkit.event.world.WorldLoadEvent;
+import org.bukkit.event.world.WorldSaveEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -47,12 +50,18 @@ import static java.lang.Math.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 
 
 public abstract class MCPUCore extends JavaPlugin implements Listener, TabCompleter
 {
     private static final String registerWandTag = "______mcpu_integrated_component_register_tool";
+    public static final String circuitFileName = "circuits.dat";
     public static final HashMap<Integer, IntegratedCircuit> circuits = new HashMap<>();
     public static String usagetext;
     public static Logger log;
@@ -151,6 +160,9 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
         srv.getScheduler().scheduleSyncRepeatingTask(this, this::onTick, 1, 1);
 
         getCommand("mcpu").setTabCompleter(this);
+        getDataFolder().mkdirs();
+        
+        onWorldLoadEvent(null);
     }
     
     @Override
@@ -159,6 +171,8 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
         for (IntegratedCircuit ic : circuits.values())
             if (ic instanceof EmulatedProcessor)
                 ((EmulatedProcessor)ic).stop();
+        
+        onWorldSaveEvent(null);
     }
     
     public final void onTick()
@@ -232,9 +246,70 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
             }
         }
     }
+
+    @EventHandler
+    public final void onWorldSaveEvent(WorldSaveEvent event)
+    {
+        try
+        {
+            byte[] data = serialize();
+            File target = getCircuitStorageFile();
+            FileOutputStream fos = new FileOutputStream(target);
+            
+            fos.write(data);
+            fos.close();
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+    }
+
+    @EventHandler
+    public final void onWorldLoadEvent(WorldLoadEvent event)
+    {
+        try
+        {
+            File target = getCircuitStorageFile();
+            
+            if (target.exists())
+            {
+                FileInputStream fis = new FileInputStream(target);
+                byte[] data = new byte[(int)target.length()];
+                
+                fis.read(data);
+                fis.close();
+
+                deserialize(data);
+            }   
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+    }
+
+    @EventHandler
+    public final void onWorldInitEvent(WorldInitEvent event)
+    {
+        onWorldLoadEvent(event == null ? null : new WorldLoadEvent(event.getWorld()));
+    }
+
+    private final File getCircuitStorageFile() throws IOException
+    {
+        File dat = new File(getDataFolder().getPath() + '/' + circuitFileName);
+        
+        if (!dat.exists())
+        {
+            dat.getParentFile().mkdirs();
+            dat.createNewFile();
+        }
+        
+        return dat;
+    }
     
     @EventHandler
-    public List<String> onTabComplete(CommandSender sender, Command cmd, String[] args)
+    public final List<String> onTabComplete(CommandSender sender, Command cmd, String[] args)
     {
         print(ChatColor.AQUA, cmd.getName());
         
@@ -303,8 +378,9 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
                     String name = ItemNBTHelper.getTag(is, "name");
                     String[] args = ItemNBTHelper.getTag(is, "args").split("§§");
                     int size = Integer.parseInt(ItemNBTHelper.getTag(is, "size"));
+                    UUID pid = UUID.fromString(ItemNBTHelper.getTag(is, "uuid"));
                     
-                    registerComponent(event.getPlayer(), name, args, size);
+                    registerComponent(getServer().getPlayer(pid), name, args, size);
                 }
         }
     }
@@ -395,10 +471,10 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
                             {
                                 Player player = (Player)sender;
                                 ItemStack stack = player.getInventory().getItemInMainHand();
-                                String[] book = GetBook(stack);
+                                String[] book = getBook(stack);
                                 
                                 if (book == null)
-                                    book = GetBook(player.getInventory().getItemInOffHand());
+                                    book = getBook(player.getInventory().getItemInOffHand());
                                 
                                 if (book == null)
                                     error(sender, "You must be holding a writable/readable book in your main hand to load data into the processor.");
@@ -490,14 +566,17 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
             tags.put("name", icname);
             tags.put("size", "" + cpusize);
             tags.put("args", String.join("§§", args));
+            tags.put("uuid", ((Player)sender).getUniqueId().toString());
             tags.put(registerWandTag, registerWandTag);
             
             String[] lore = new String[] {
-                  ChatColor.LIGHT_PURPLE + "Right-click with this magic wand on the north-west",
-                  ChatColor.LIGHT_PURPLE + "corner of a structure to register it as '" + ChatColor.AQUA + icname + ChatColor.LIGHT_PURPLE + "'-component.",
-                  ChatColor.LIGHT_PURPLE + "The wand will (more or less) behave as if you would",
-                  ChatColor.LIGHT_PURPLE + "have stood on/in the clicked block and used the",
-                  ChatColor.LIGHT_PURPLE + "'" + ChatColor.GOLD + "/mcpu add" + ChatColor.LIGHT_PURPLE + "' command."
+                ChatColor.LIGHT_PURPLE + "Right-click with this magic wand on the",
+                ChatColor.LIGHT_PURPLE + "north-west corner of a structure to",
+                ChatColor.LIGHT_PURPLE + "register it as a '" + ChatColor.AQUA + icname + ChatColor.LIGHT_PURPLE + "'-component.",
+                ChatColor.LIGHT_PURPLE + "The wand will (more or less) behave as",
+                ChatColor.LIGHT_PURPLE + "if you would have stood in the clicked",
+                ChatColor.LIGHT_PURPLE + "block and used the '" + ChatColor.GOLD + "/mcpu add " + ChatColor.ITALIC + icname + ChatColor.RESET + ChatColor.LIGHT_PURPLE + "'",
+                ChatColor.LIGHT_PURPLE + "command."
             };
 
             ItemNBTHelper.addItem(Items.STICK, 1, tags, lore, "Magic wand to register a " + icname + "-circuit", sender);
@@ -631,7 +710,7 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
         }
     }
     
-    private int spawnComponent(BlockPlacingContext context, ComponentFactory fac, Player player, int x, int y, int z, ComponentOrientation orient, int cpusize)
+    private int spawnComponent(BlockPlacingContext context, ComponentFactory<IntegratedCircuit> fac, Player player, int x, int y, int z, ComponentOrientation orient, int cpusize)
             throws InvalidOrientationException
     {
         IntegratedCircuit ic = fac.spawnComponent(context, this, player, x, y, z, orient, cpusize);
@@ -727,14 +806,25 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
                 wr.write(0);
             else
             {
-                byte[] ser = ic.serialize();
+                ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                ObjectOutputStream out = new ObjectOutputStream(bos);
                 
+                out.writeObject(ic);
+                out.flush();
+                
+                byte[] ser = ic.serialize();
+                byte[] oser = bos.toByteArray(); 
+
+                wr.write(oser.length);
+                wr.write(oser);
                 wr.write(ser.length);
                 wr.write(ser);
+
+                out.close();
+                bos.close();
             }
         }
 
-        wr.write(usagetext);
         wr.flush();
         
         return s.toByteArray();
@@ -755,16 +845,25 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
             
             if (serlen > 0)
             {
-                IntegratedCircuit ic = null; // create via black magic somehow
+                byte[] oser = rd.readBytes(serlen);
+                
+                serlen = rd.readInt();
+                
                 byte[] ser = rd.readBytes(serlen);
                 
+                ByteArrayInputStream bis = new ByteArrayInputStream(oser);
+                ObjectInputStream in = new ObjectInputStream(bis);
+                IntegratedCircuit ic = (IntegratedCircuit)in.readObject();
+                
+                in.close();
+                bis.close();
                 ic.deserialize(ser);
                 
                 circuits.put(num, ic);
             }
         }
 
-        usagetext = rd.readString();
+        print(ChatColor.GREEN, circuits.size() + " components were loaded into the the world!");
         
         s.close();
     }
@@ -791,7 +890,7 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
         });
     }
     
-    private static String[] GetBook(ItemStack stack)
+    private static String[] getBook(ItemStack stack)
     {
         if (stack != null)
             if (stack.getAmount() > 0)
@@ -856,7 +955,8 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
         if (s != null)
             s.sendMessage(c + m);
         
-        log.log(Level.INFO, c + m);
+        if ((s == null) || (s instanceof Player))
+            log.log(Level.INFO, ChatColor.stripColor(m));
     }
     
     public static void error(CommandSender s, String m)

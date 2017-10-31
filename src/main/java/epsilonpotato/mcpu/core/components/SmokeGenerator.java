@@ -17,6 +17,7 @@ import epsilonpotato.mcpu.util.Triplet;
 
 public class SmokeGenerator extends IntegratedCircuit
 {
+    private static final long serialVersionUID = -3302634901119237082L;
     public static final HashMap<ComponentOrientation, int[]> ports;
 
 
@@ -46,7 +47,7 @@ public class SmokeGenerator extends IntegratedCircuit
     protected final void onTick()
     {
         if (!io[0].isLow())
-            world.spawnParticle(Particle.SMOKE_LARGE, x + 1.5, y + 2, z + 1.5, 50, .5, 4, .5, 0);
+            world.spawnParticle(Particle.SMOKE_LARGE, x + 1.5, y + 3.5, z + 1.5, 50, .5, 4, .5, 0);
     }
 
     @Override

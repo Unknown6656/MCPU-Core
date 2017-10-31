@@ -1,7 +1,10 @@
 package epsilonpotato.mcpu.util;
 
-public final class Tuple<X, Y>
+import java.io.Serializable;
+
+public final class Tuple<X, Y> implements Serializable
 {
+    private static final long serialVersionUID = 1L;
     public X x;
     public Y y;
     

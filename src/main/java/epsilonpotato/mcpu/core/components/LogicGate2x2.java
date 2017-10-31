@@ -19,6 +19,7 @@ import epsilonpotato.mcpu.util.Tuple;
 
 public class LogicGate2x2 extends IntegratedCircuit
 {
+    private static final long serialVersionUID = -8450797721098705457L;
     public static final HashMap<ComponentOrientation, int[]> ports;
     private Consumer<Tuple<int[], byte[]>> func;
     private byte[] state = new byte[16];

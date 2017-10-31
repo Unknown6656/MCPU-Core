@@ -10,6 +10,9 @@ import epsilonpotato.mcpu.util.Triplet;
 
 public abstract class LeverAwareEmulatedProcessor extends EmulatedProcessor
 {
+    private static final long serialVersionUID = -6654702571745427110L;
+
+    
     public abstract Location getLeverLocation();
     
     

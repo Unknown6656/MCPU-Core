@@ -20,6 +20,7 @@ import epsilonpotato.mcpu.util.Triplet;
 
 public abstract class EmulatedProcessor extends IntegratedCircuit
 {
+    private static final long serialVersionUID = -3878716463587377556L;
     protected boolean canrun;
     protected long ticks;
     

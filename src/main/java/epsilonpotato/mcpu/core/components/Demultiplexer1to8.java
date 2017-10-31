@@ -15,6 +15,9 @@ import epsilonpotato.mcpu.util.Triplet;
 
 public final class Demultiplexer1to8 extends IntegratedCircuit
 {
+    private static final long serialVersionUID = -2274271689940133471L;
+
+    
     public Demultiplexer1to8(Player creator, Location loc, ComponentOrientation orient) throws InvalidOrientationException
     {
         super(creator, loc, new Triplet<>(7, 1, 16), 12, orient);

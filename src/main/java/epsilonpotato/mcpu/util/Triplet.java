@@ -1,7 +1,10 @@
 package epsilonpotato.mcpu.util;
 
-public final class Triplet<X, Y, Z>
+import java.io.Serializable;
+
+public final class Triplet<X, Y, Z> implements Serializable
 {
+    private static final long serialVersionUID = -8100911397280809156L;
     public X x;
     public Y y;
     public Z z;

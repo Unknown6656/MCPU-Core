@@ -3,6 +3,7 @@ package epsilonpotato.mcpu.core;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.UUID;
 import java.util.function.Function;
@@ -15,13 +16,14 @@ import org.bukkit.entity.Player;
 
 import epsilonpotato.mcpu.util.*;
 
-public abstract class IntegratedCircuit
+public abstract class IntegratedCircuit implements Serializable
 {
-    protected ArrayList<Triplet<Integer, Integer, Integer>> assocblocks;
+    private static final long serialVersionUID = -1592305793835093270L;
+    protected transient ArrayList<Triplet<Integer, Integer, Integer>> assocblocks;
     protected int x, y, z, xsize, ysize, zsize;
     protected ComponentOrientation orientation;
-    protected Player creator;
-    protected World world;
+    protected transient Player creator;
+    protected transient World world;
     protected IOPort[] io;
     
 

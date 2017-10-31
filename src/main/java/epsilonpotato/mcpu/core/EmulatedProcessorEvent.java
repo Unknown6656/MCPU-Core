@@ -1,6 +1,8 @@
 package epsilonpotato.mcpu.core;
 
-public interface EmulatedProcessorEvent<T>
+import java.io.Serializable;
+
+public interface EmulatedProcessorEvent<T> extends Serializable
 {
     public void Raise(EmulatedProcessor proc, T data);
 }
