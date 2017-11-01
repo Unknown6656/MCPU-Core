@@ -6,7 +6,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.function.Consumer;
 
 
 public class Parallel
@@ -14,7 +13,7 @@ public class Parallel
     static final int nCPU = Runtime.getRuntime().availableProcessors();
     
     
-    public static <T> void ForEach(Iterable<T> parameters, final Consumer<T> loopBody)
+    public static <T> void ForEach(Iterable<T> parameters, final Action<T> loopBody)
     {
         ExecutorService executor = Executors.newFixedThreadPool(nCPU);
         List<Future<?>> futures = new LinkedList<Future<?>>();
@@ -25,7 +24,7 @@ public class Parallel
             {
                 public void run()
                 {
-                    loopBody.accept(param);
+                    loopBody.eval(param);
                 }
             });
             
@@ -47,7 +46,7 @@ public class Parallel
         executor.shutdown();
     }
     
-    public static void For(int start, int stop, final Consumer<Integer> loopBody)
+    public static void For(int start, int stop, final Action<Integer> loopBody)
     {
         ExecutorService executor = Executors.newFixedThreadPool(nCPU);
         List<Future<?>> futures = new LinkedList<Future<?>>();
@@ -57,7 +56,7 @@ public class Parallel
             {
                 final int k = i;
                 
-                Future<?> future = executor.submit(() -> loopBody.accept(k));
+                Future<?> future = executor.submit(() -> loopBody.eval(k));
                 
                 futures.add(future);
             }
@@ -70,7 +69,7 @@ public class Parallel
                 futures.add(executor.submit(() ->
                 {
                     for (int j = 0, l = k < nCPU - 1 ? block : stop - start - block * k; j < l; ++j)
-                        loopBody.accept(j + k * block + start);
+                        loopBody.eval(j + k * block + start);
                 }));
             }
         

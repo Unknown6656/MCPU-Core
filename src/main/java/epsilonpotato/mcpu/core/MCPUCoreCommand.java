@@ -1,11 +1,12 @@
 package epsilonpotato.mcpu.core;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Set;
 
 
-public enum MCPUCoreCommand
+public enum MCPUCoreCommand implements Serializable
 {
     HELP("?", "help"),
     ADD("add"),

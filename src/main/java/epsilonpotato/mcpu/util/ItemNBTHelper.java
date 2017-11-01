@@ -57,4 +57,16 @@ public final class ItemNBTHelper
         else
             return null;
     }
+
+    public static final HashMap<String, String> getTags(org.bukkit.inventory.ItemStack stack)
+    {
+        ItemStack nmsstack = CraftItemStack.asNMSCopy(stack);
+        NBTTagCompound com = nmsstack.getTag();
+        HashMap<String, String> map = new HashMap<>();
+        
+        for (String key : com.c())
+            map.put(key, com.getString(key));
+        
+        return map;
+    }
 }

@@ -194,8 +194,13 @@ public abstract class IntegratedCircuit implements Serializable
         for (IOPort iop : io)
             wr.write((byte)(iop.getValue() & (iop.getDirection() ? 0x80 : 0x00)));
         
-        wr.write(creator.getUniqueId());
-        wr.write(world.getUID());
+        wr.write((byte)((creator == null ? 0 : 1) | (world == null ? 0 : 2)));
+        
+        if (creator != null)
+            wr.write(creator.getUniqueId());
+        
+        if (world != null)
+            wr.write(world.getUID());
 
         serializeComponentSpecific(wr);
         
@@ -243,16 +248,25 @@ public abstract class IntegratedCircuit implements Serializable
             io[i] = new IOPort(val & 0x0f, (val & 0x80) != 0);
         }
 
-        UUID plr = rd.readUUID();
-        UUID wrld = rd.readUUID();
-
-        Entity ep = MCPUCore.srv.getEntity(plr);
+        byte flags = rd.readByte();
         
-        if (ep instanceof Player)
-            creator = (Player)ep;
-        
-        world = MCPUCore.srv.getWorld(wrld);
+        if ((flags & 1) != 0)
+        {
+            UUID plr = rd.readUUID();
 
+            Entity ep = MCPUCore.srv.getEntity(plr);
+            
+            if (ep instanceof Player)
+                creator = (Player)ep;
+        }
+        
+        if ((flags & 2) != 0)
+        {
+            UUID wrld = rd.readUUID();
+            
+            world = MCPUCore.srv.getWorld(wrld);
+        }
+        
         deserializeComponentSpecific(rd);
         
         s.close();

@@ -4,13 +4,9 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 
-import epsilonpotato.mcpu.core.BlockPlacingContext;
-import epsilonpotato.mcpu.core.ComponentFactory;
-import epsilonpotato.mcpu.core.ComponentOrientation;
-import epsilonpotato.mcpu.core.InvalidOrientationException;
-import epsilonpotato.mcpu.core.MCPUCore;
+import epsilonpotato.mcpu.core.*;
+import epsilonpotato.mcpu.util.*;
 import epsilonpotato.mcpu.core.components.WoolDisplay32x32;
-import epsilonpotato.mcpu.util.Triplet;
 
 public final class WoolDisplay32x32Factory extends ComponentFactory<WoolDisplay32x32>
 {

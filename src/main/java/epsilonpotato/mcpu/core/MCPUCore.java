@@ -11,7 +11,6 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
-import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -27,7 +26,6 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -39,14 +37,8 @@ import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import epsilonpotato.mcpu.core.components.factories.*;
-import epsilonpotato.mcpu.util.BinaryReader;
-import epsilonpotato.mcpu.util.BinaryWriter;
-import epsilonpotato.mcpu.util.ItemNBTHelper;
-import epsilonpotato.mcpu.util.Triplet;
-import epsilonpotato.mcpu.util.Tuple;
+import epsilonpotato.mcpu.util.*;
 import net.minecraft.server.v1_12_R1.Items;
-
-import static java.lang.Math.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -56,6 +48,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+
+import static java.lang.Math.*;
 
 
 public abstract class MCPUCore extends JavaPlugin implements Listener, TabCompleter
@@ -118,30 +112,31 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
             ComponentFactory.registerFactory("nor", new BinaryLogicGateFactory((x, y) -> ~(x | y), "nor"));
             ComponentFactory.registerFactory("xor", new BinaryLogicGateFactory((x, y) -> x ^ y, "xor"));
             ComponentFactory.registerFactory("nxor", new BinaryLogicGateFactory((x, y) -> ~(x ^ y), "nxor"));
-            ComponentFactory.registerFactory("hadd", new LogicGate2x2Factory(t ->
+            ComponentFactory.registerFactory("hadd", new LogicGate2x2Factory((g, s) ->
             {
-                t.x[2] = t.x[0] ^ t.x[1];
-                t.x[3] = t.x[0] & t.x[1];
+                g[2] = g[0] ^ g[1];
+                g[3] = g[0] & g[1];
             }, "hadd"));
-            ComponentFactory.registerFactory("tflipflop", new LogicGate2x2Factory(t ->
+            ComponentFactory.registerFactory("tflipflop", new LogicGate2x2Factory((g, s) ->
             {
-                if (t.x[0] != 0)
-                    t.y[0] = (byte)(t.y[0] == 0 ? 1 : 2); // set only on rising flank
+                if (g[0] != 0)
+                    s[0] = (byte)(s[0] == 0 ? 1 : 2); // set only on rising flank
                 else
-                    t.y[0] = 0;
+                    s[0] = 0;
                 
-                if (t.y[0] == 1) // if rising flank
-                    t.y[1] = (byte)(t.y[1] != 0 ? 0 : 1);
+                if (s[0] == 1) // if rising flank
+                    s[1] = (byte)(s[1] != 0 ? 0 : 1);
                 
-                if (t.x[1] != 0)
-                    t.y[1] = 0;
+                if (g[1] != 0)
+                    s[1] = 0;
                 
-                t.x[2] = t.y[1];
-                t.x[3] = t.x[2] != 0 ? 0 : 1;
+                g[2] = s[1];
+                g[3] = g[2] != 0 ? 0 : 1;
             }, "hadd"));
         }
         catch (Exception e)
         {
+            e.printStackTrace();
         }
         
         registerIntegratedCircuits();
@@ -368,20 +363,24 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent event)
     {        
-        if ((event != null) && (event.getAction() == Action.RIGHT_CLICK_BLOCK))
+        if ((event != null) && (event.getAction() == org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK))
         {
             ItemStack is = event.getItem();
             
             if ((is != null) && (is.getType() == Material.STICK))
-                if (registerWandTag.equals(ItemNBTHelper.getTag(is, registerWandTag)))
+            {
+                HashMap<String, String> tags = ItemNBTHelper.getTags(is);
+                
+                if (tags.containsKey(registerWandTag) && registerWandTag.equals(tags.get(registerWandTag)))
                 {
-                    String name = ItemNBTHelper.getTag(is, "name");
-                    String[] args = ItemNBTHelper.getTag(is, "args").split("§§");
-                    int size = Integer.parseInt(ItemNBTHelper.getTag(is, "size"));
-                    UUID pid = UUID.fromString(ItemNBTHelper.getTag(is, "uuid"));
+                    String name = tags.get("name");
+                    String[] args = tags.get("args").split("§§");
+                    int size = Integer.parseInt(tags.get("size"));
+                    UUID pid = UUID.fromString(tags.get("uuid"));
                     
                     registerComponent(getServer().getPlayer(pid), name, args, size);
                 }
+            }
         }
     }
     
@@ -441,9 +440,17 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
                     {
                         if (circuits.containsKey(i))
                         {
-                            IntegratedCircuit c = circuits.remove(i);
+                            final IntegratedCircuit c = circuits.remove(i);
                             
-                            deleteRegion(c.world, c.x, c.y, c.z, c.xsize, c.ysize, c.zsize);
+                            if (c.assocblocks == null)
+                                deleteRegion(c.world, c.x, c.y, c.z, c.xsize, c.ysize, c.zsize);
+                            else
+                                Parallel.For(0, c.assocblocks.size(), ndx ->
+                                {
+                                    Triplet<Integer, Integer, Integer> loc = c.assocblocks.get(ndx);
+                                    
+                                    c.world.getBlockAt(loc.x, loc.y, loc.z).setType(Material.AIR);
+                                });
                             
                             print(sender, ChatColor.GREEN, "The component No. " + i + " has been removed from the world.");
                         }
@@ -868,23 +875,23 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
         s.close();
     }
 
-    private void getIC(final String[] argv, final int ndx, final CommandSender sender, Consumer<IntegratedCircuit> action)
+    private void getIC(final String[] argv, final int ndx, final CommandSender sender, Action<IntegratedCircuit> action)
     {
         getInt(argv, ndx, sender, i ->
         {
             if (circuits.containsKey(i))
-                action.accept(circuits.get(i));
+                action.eval(circuits.get(i));
             else
                 sender.sendMessage(ChatColor.RED + "The component No. " + i + " could not be found.");
         });
     }
     
-    private void getProcessor(final String[] argv, final int ndx, final CommandSender sender, Consumer<EmulatedProcessor> action)
+    private void getProcessor(final String[] argv, final int ndx, final CommandSender sender, Action<EmulatedProcessor> action)
     {
         getIC(argv, ndx, sender, ic ->
         {
             if (ic.isEmulatedProcessor())
-                action.accept((EmulatedProcessor)ic);
+                action.eval((EmulatedProcessor)ic);
             else
                 error(sender, "The component in question must be an emulated processor to perform the current action.");
         });
@@ -910,14 +917,14 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
         return null;
     }
     
-    private static void getInt(final String[] argv, final int ndx, final CommandSender sender, Consumer<Integer> action)
+    private static void getInt(final String[] argv, final int ndx, final CommandSender sender, Action<Integer> action)
     {
         String arg = getArg(argv, ndx, sender);
         
         if (arg != null)
             try
             {
-                action.accept(Integer.parseInt(arg));
+                action.eval(Integer.parseInt(arg));
             }
             catch (NumberFormatException e)
             {

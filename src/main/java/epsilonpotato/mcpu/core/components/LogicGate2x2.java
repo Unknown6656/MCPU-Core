@@ -1,27 +1,19 @@
 package epsilonpotato.mcpu.core.components;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.HashMap;
-import java.util.function.Consumer;
 
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
-import epsilonpotato.mcpu.core.ComponentOrientation;
-import epsilonpotato.mcpu.core.IntegratedCircuit;
-import epsilonpotato.mcpu.core.InvalidOrientationException;
-import epsilonpotato.mcpu.util.BinaryReader;
-import epsilonpotato.mcpu.util.BinaryWriter;
-import epsilonpotato.mcpu.util.Serializer;
-import epsilonpotato.mcpu.util.Triplet;
-import epsilonpotato.mcpu.util.Tuple;
+import epsilonpotato.mcpu.core.*;
+import epsilonpotato.mcpu.util.*;
 
 public class LogicGate2x2 extends IntegratedCircuit
 {
     private static final long serialVersionUID = -8450797721098705457L;
     public static final HashMap<ComponentOrientation, int[]> ports;
-    private Consumer<Tuple<int[], byte[]>> func;
+    private BiAction<int[], byte[]> func;
     private byte[] state = new byte[16];
     private String name;
     
@@ -35,7 +27,7 @@ public class LogicGate2x2 extends IntegratedCircuit
         ports.put(ComponentOrientation.EAST, new int[] { 0, 3, 2, 3, 0, 0, 2, 0 });
     }
 
-    public LogicGate2x2(Player creator, Location loc, Consumer<Tuple<int[], byte[]>> func, String name, ComponentOrientation orient) throws InvalidOrientationException
+    public LogicGate2x2(Player creator, Location loc, BiAction<int[], byte[]> func, String name, ComponentOrientation orient) throws InvalidOrientationException
     {
         super(creator, loc, orient.isNorthSouth() ? new Triplet<>(4, 1, 3) : new Triplet<>(3, 1, 4), 4, orient);
         
@@ -59,7 +51,7 @@ public class LogicGate2x2 extends IntegratedCircuit
     {
         int[] data = new int[] { io[0].getValue(), io[1].getValue(), 0, 0 };
         
-        func.accept(new Tuple<int[], byte[]>(data, state));
+        func.eval(data, state);
 
         io[2].setValue((data[2] & 0xff) != 0 ? 15 : 0);
         io[3].setValue((data[3] & 0xff) != 0 ? 15 : 0);
@@ -80,7 +72,7 @@ public class LogicGate2x2 extends IntegratedCircuit
     @Override
     protected void serializeComponentSpecific(BinaryWriter wr) throws IOException
     {
-        byte[] delegate = Serializer.serialize((Consumer<Tuple<int[], byte[]>> & Serializable)func);
+        byte[] delegate = Serializer.serialize(func);
         
         wr.write(name);
         wr.write(delegate.length);
@@ -89,7 +81,6 @@ public class LogicGate2x2 extends IntegratedCircuit
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     protected void deserializeComponentSpecific(BinaryReader rd) throws IOException, ClassNotFoundException
     {
         name = rd.readString();
@@ -97,7 +88,7 @@ public class LogicGate2x2 extends IntegratedCircuit
         int length = rd.readInt();
         byte[] delegate = rd.readBytes(length);
 
-        func = (Consumer<Tuple<int[], byte[]>>)Serializer.deserialize(delegate);
+        func = Serializer.deserialize(delegate);
         state = rd.readBytes(16);
     }
 }

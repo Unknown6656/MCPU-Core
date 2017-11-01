@@ -8,17 +8,11 @@ import org.bukkit.Material;
 import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
 
-import epsilonpotato.mcpu.core.BlockPlacingContext;
-import epsilonpotato.mcpu.core.ComponentFactory;
-import epsilonpotato.mcpu.core.ComponentOrientation;
-import epsilonpotato.mcpu.core.InvalidOrientationException;
-import epsilonpotato.mcpu.core.MCPUCore;
+import epsilonpotato.mcpu.core.*;
+import epsilonpotato.mcpu.util.*;
 import epsilonpotato.mcpu.core.components.BinaryLogicGate;
-import epsilonpotato.mcpu.util.Triplet;
-import epsilonpotato.mcpu.util.Tuple;
 
 import java.util.HashMap;
-import java.util.function.BiFunction;
 
 
 public final class BinaryLogicGateFactory extends ComponentFactory<BinaryLogicGate>
@@ -51,7 +45,8 @@ public final class BinaryLogicGateFactory extends ComponentFactory<BinaryLogicGa
     
     @Override
     @SuppressWarnings("deprecation")
-    public BinaryLogicGate spawnComponent(BlockPlacingContext context, MCPUCore caller, Player p, int x, int y, int z, ComponentOrientation or, int iocount) throws InvalidOrientationException
+    public BinaryLogicGate spawnComponent(BlockPlacingContext context, MCPUCore caller, Player p, int x, int y, int z, ComponentOrientation or, int iocount)
+            throws InvalidOrientationException
     {
         int[] pinloc = BinaryLogicGate.ports.get(or);
         boolean ns = or.isNorthSouth();

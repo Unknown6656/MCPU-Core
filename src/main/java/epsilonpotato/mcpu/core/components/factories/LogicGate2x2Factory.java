@@ -7,23 +7,17 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 
-import epsilonpotato.mcpu.core.BlockPlacingContext;
-import epsilonpotato.mcpu.core.ComponentFactory;
-import epsilonpotato.mcpu.core.ComponentOrientation;
-import epsilonpotato.mcpu.core.InvalidOrientationException;
-import epsilonpotato.mcpu.core.MCPUCore;
+import epsilonpotato.mcpu.core.*;
+import epsilonpotato.mcpu.util.*;
 import epsilonpotato.mcpu.core.components.LogicGate2x2;
-import epsilonpotato.mcpu.util.Triplet;
-import epsilonpotato.mcpu.util.Tuple;
 
 import java.util.HashMap;
-import java.util.function.Consumer;
 
 
 public final class LogicGate2x2Factory extends ComponentFactory<LogicGate2x2>
 {
     private static final HashMap<ComponentOrientation, Tuple<Integer, Integer>> signloc;
-    private final Consumer<Tuple<int[], byte[]>> func;
+    private final BiAction<int[], byte[]> func;
     private final String name;
     
     static
@@ -36,7 +30,7 @@ public final class LogicGate2x2Factory extends ComponentFactory<LogicGate2x2>
     }
     
     
-    public LogicGate2x2Factory(Consumer<Tuple<int[], byte[]>> func, String name)
+    public LogicGate2x2Factory(BiAction<int[], byte[]> func, String name)
     {
         this.func = func;
         this.name = name;
@@ -50,7 +44,8 @@ public final class LogicGate2x2Factory extends ComponentFactory<LogicGate2x2>
     
     @Override
     @SuppressWarnings("deprecation")
-    public LogicGate2x2 spawnComponent(BlockPlacingContext context, MCPUCore caller, Player p, int x, int y, int z, ComponentOrientation or, int iocount) throws InvalidOrientationException
+    public LogicGate2x2 spawnComponent(BlockPlacingContext context, MCPUCore caller, Player p, int x, int y, int z, ComponentOrientation or, int iocount)
+            throws InvalidOrientationException
     {
         int[] pinloc = LogicGate2x2.ports.get(or);
         boolean ns = or.isNorthSouth();
