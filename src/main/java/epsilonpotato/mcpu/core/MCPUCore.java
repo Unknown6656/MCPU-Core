@@ -132,7 +132,7 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
                 
                 g[2] = s[1];
                 g[3] = g[2] != 0 ? 0 : 1;
-            }, "hadd"));
+            }, "tflipflop"));
         }
         catch (Exception e)
         {
