@@ -7,6 +7,7 @@ import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
 import epsilonpotato.mcpu.core.*;
+import epsilonpotato.mcpu.core.components.factories.BinaryLogicGateFactory;
 import epsilonpotato.mcpu.util.*;
 
 

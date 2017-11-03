@@ -52,16 +52,49 @@ import java.io.ObjectOutputStream;
 import static java.lang.Math.*;
 
 
+/**
+ * The plugin's core class. All actual bukkit plugins using the MCPU framework must derive from this class
+ * @author Unknown6656
+ */
 public abstract class MCPUCore extends JavaPlugin implements Listener, TabCompleter
 {
     private static final String registerWandTag = "______mcpu_integrated_component_register_tool";
-    public static final String circuitFileName = "circuits.dat";
+    private static final String circuitFileName = "circuits.yml";
+    private static String usagetext;
+    /**
+     * A hash map of all registered ICs. The key is a unique integer number (optimally starting at zero and incremented by one every time a component is added). 
+     */
     public static final HashMap<Integer, IntegratedCircuit> circuits = new HashMap<>();
-    public static String usagetext;
+    /**
+     * The console logger instance
+     */
     public static Logger log;
+    /**
+     * The current server instance
+     */
     public static Server srv;
     
     
+    /**
+     * Abstract method which registers more integrated circuits using the method {@see epsilonpotato.mcpu.core.ComponentFactory#registerFactory(String, epsilonpotato.mcpu.core.ComponentFactory)}.
+     */
+    public abstract void registerIntegratedCircuits();
+    
+    /**
+     * Abstract event handler which is raised if a given command is unhandled
+     * @param sender The command sender
+     * @param command The command
+     * @param label Command label (?)
+     * @param args Command arguments
+     * @return Boolean value which indicates whether the command could be handled or not
+     */
+    public abstract boolean onUnprocessedCommand(CommandSender sender, Command command, String label, String[] args);
+    
+    
+    /**
+     * Creates a new instance and passes a hash map of additional usage options and commands (can be null)
+     * @param usageoptions Additional usage options which will be displayed when typing a help-command. The key is the first command argument. The tuple is composed of the argument syntax and a short description
+     */
     public MCPUCore(HashMap<String, Tuple<String, String>> usageoptions)
     {
         if (usageoptions == null)
@@ -142,6 +175,9 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
         registerIntegratedCircuits();
     }
     
+    /**
+     * @see org.bukkit.plugin.java.JavaPlugin#onEnable()
+     */
     @Override
     public final void onEnable()
     {
@@ -160,6 +196,9 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
         onWorldLoadEvent(null);
     }
     
+    /**
+     * @see org.bukkit.plugin.java.JavaPlugin#onDisable()
+     */
     @Override
     public void onDisable()
     {
@@ -170,6 +209,9 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
         onWorldSaveEvent(null);
     }
     
+    /**
+     * A function executed on each tick designed to update all component's I/O ports and perform each component's '{@link IntegratedCircuit#onTick()}' method.
+     */
     public final void onTick()
     {
         circuits.values().forEach(c ->
@@ -204,8 +246,12 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
                 circuits.remove(i);
     }
     
+    /**
+     * Event handler which is being called if a block has been placed in the world. The handler verifies that the block placed does not interfere with integrated circuits.
+     * @param event Event data
+     */
     @EventHandler
-    public void onBlockPlaceEvent(BlockPlaceEvent event)
+    public final void onBlockPlaceEvent(BlockPlaceEvent event)
     {
         Location l = event.getBlock().getLocation();
         
@@ -223,8 +269,12 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
         }
     }
     
+    /**
+     * Event handler which is being called if a block has been destroyed. The handler verifies that the block is not a part of any registered IC.
+     * @param event Event data
+     */
     @EventHandler
-    public void onBlockBreakEvent(BlockBreakEvent event)
+    public final void onBlockBreakEvent(BlockBreakEvent event)
     {
         Location l = event.getBlock().getLocation();
 
@@ -242,6 +292,10 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
         }
     }
 
+    /**
+     * Event handler which is being called if the world is saved. 
+     * @param event Event data
+     */
     @EventHandler
     public final void onWorldSaveEvent(WorldSaveEvent event)
     {
@@ -260,6 +314,10 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
         }
     }
 
+    /**
+     * Event handler which is being called if the world is loaded
+     * @param event Event data
+     */
     @EventHandler
     public final void onWorldLoadEvent(WorldLoadEvent event)
     {
@@ -284,6 +342,10 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
         }
     }
 
+    /**
+     * Event handler which is being called if the world is initialised.
+     * @param event Event data
+     */
     @EventHandler
     public final void onWorldInitEvent(WorldInitEvent event)
     {
@@ -303,6 +365,13 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
         return dat;
     }
     
+    /**
+     * Event handler which handles when a player presses the `TAB`-key in the console halfway through typing a command
+     * @param sender The sender (player or console user)
+     * @param cmd The command
+     * @param args Command arguments
+     * @return Command completition list
+     */
     @EventHandler
     public final List<String> onTabComplete(CommandSender sender, Command cmd, String[] args)
     {
@@ -360,8 +429,12 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
             return null;
     }
     
+    /**
+     * Event handler which is being called when a player interacts with a block. The handler processes the usage of the 'register magic wand'
+     * @param event Event data
+     */
     @EventHandler
-    public void onPlayerInteract(PlayerInteractEvent event)
+    public final void onPlayerInteract(PlayerInteractEvent event)
     {        
         if ((event != null) && (event.getAction() == org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK))
         {
@@ -384,12 +457,11 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
         }
     }
     
-    public abstract void registerIntegratedCircuits();
-    
-    public abstract boolean onUnprocessedCommand(CommandSender sender, Command command, String label, String[] args);
-    
+    /**
+     * @see org.bukkit.plugin.java.JavaPlugin#onCommand(org.bukkit.command.CommandSender, org.bukkit.command.Command, java.lang.String, java.lang.String[])
+     */
     @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args)
+    public final boolean onCommand(CommandSender sender, Command command, String label, String[] args)
     {
         if (command.getName().equalsIgnoreCase("mcpu"))
         {
@@ -773,7 +845,13 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
         return -1;
     }
     
-    protected boolean compileLoad(CommandSender sender, EmulatedProcessor core, URI source)
+    /**
+     * @param sender
+     * @param core
+     * @param source
+     * @return
+     */
+    protected final boolean compileLoad(CommandSender sender, EmulatedProcessor core, URI source)
     {
         try
         {
@@ -796,83 +874,54 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
         }
     }
 
-    public byte[] serialize() throws IOException
+    /**
+     * @return
+     * @throws IOException
+     */
+    public final void serialize(YamlConfiguration conf)
     {
-        ByteArrayOutputStream s = new ByteArrayOutputStream();
-        BinaryWriter wr = new BinaryWriter(s);
-
-        wr.write(circuits.size());
+        conf.clear();
         
-        for (int i : circuits.keySet())
+        YamlConfiguration ics = conf.getOrCreateSection("circuits");
+        int num = 0;
+        
+        for (int index : circuits.keySet())
         {
-            IntegratedCircuit ic = circuits.get(i);
+            IntegratedCircuit ic = circuits.get(index); 
             
-            wr.write(i);
-            
-            if (ic == null)
-                wr.write(0);
-            else
-            {
-                ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                ObjectOutputStream out = new ObjectOutputStream(bos);
-                
-                out.writeObject(ic);
-                out.flush();
-                
-                byte[] ser = ic.serialize();
-                byte[] oser = bos.toByteArray(); 
+            if (ic != null)
+            {                
+                ic.serialize(ics.getOrCreateSection("ic_" + num));
 
-                wr.write(oser.length);
-                wr.write(oser);
-                wr.write(ser.length);
-                wr.write(ser);
-
-                out.close();
-                bos.close();
+                ++num;
             }
         }
-
-        wr.flush();
-        
-        return s.toByteArray();
+            
+        conf.set("circuit_count", num);
     }
 
-    public void deserialize(byte[] data) throws IOException, ClassNotFoundException
+    /**
+     * @param data
+     * @throws IOException
+     * @throws ClassNotFoundException
+     */
+    public final void deserialize(YamlConfiguration conf)
     {
-        ByteArrayInputStream s = new ByteArrayInputStream(data);
-        BinaryReader rd = new BinaryReader(s);
-        int len = rd.readInt();
+        int cnt = conf.getInt("circuit_count", 0);
+        YamlConfiguration ics = conf.getOrCreateSection("circuits");
         
         circuits.clear();
         
-        for (int i = 0; i < len; ++i)
-        {
-            int num = rd.readInt();
-            int serlen = rd.readInt();
-            
-            if (serlen > 0)
+        for (int index = 0; index < cnt; ++index);
+            if (ics.containsKey("ic_" + index))
             {
-                byte[] oser = rd.readBytes(serlen);
+                YamlConfiguration icmap = ics.getOrCreateSection("ic_" + index);
+                IntegratedCircuit ic = null; // black magic again
                 
-                serlen = rd.readInt();
+                ic.deserialize(icmap);
                 
-                byte[] ser = rd.readBytes(serlen);
-                
-                ByteArrayInputStream bis = new ByteArrayInputStream(oser);
-                ObjectInputStream in = new ObjectInputStream(bis);
-                IntegratedCircuit ic = (IntegratedCircuit)in.readObject();
-                
-                in.close();
-                bis.close();
-                ic.deserialize(ser);
-                
-                circuits.put(num, ic);
+                circuits.put(index, ic);
             }
-        }
-
-        print(ChatColor.GREEN, circuits.size() + " components were loaded into the the world!");
-        
-        s.close();
     }
 
     private void getIC(final String[] argv, final int ndx, final CommandSender sender, Action<IntegratedCircuit> action)

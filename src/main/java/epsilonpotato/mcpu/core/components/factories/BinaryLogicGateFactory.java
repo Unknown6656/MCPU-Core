@@ -72,4 +72,19 @@ public final class BinaryLogicGateFactory extends ComponentFactory<BinaryLogicGa
         
         return new BinaryLogicGate(p, new Location(context.getWorld(), x, y, z), func, name, or);
     }
+
+
+
+
+
+    /*
+     * 
+     *      ComponentFactory.registerFactory("and", new BinaryLogicGateFactory((x, y) -> x & y, "and"));
+            ComponentFactory.registerFactory("nand", new BinaryLogicGateFactory((x, y) -> ~(x & y), "nand"));
+            ComponentFactory.registerFactory("or", new BinaryLogicGateFactory((x, y) -> x | y, "or"));
+            ComponentFactory.registerFactory("nor", new BinaryLogicGateFactory((x, y) -> ~(x | y), "nor"));
+            ComponentFactory.registerFactory("xor", new BinaryLogicGateFactory((x, y) -> x ^ y, "xor"));
+            ComponentFactory.registerFactory("nxor", new BinaryLogicGateFactory((x, y) -> ~(x ^ y), "nxor"));
+     * 
+     * */
 }

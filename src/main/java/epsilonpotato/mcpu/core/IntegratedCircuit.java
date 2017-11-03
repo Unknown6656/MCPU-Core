@@ -5,6 +5,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.UUID;
 import java.util.function.Function;
 
@@ -27,8 +28,8 @@ public abstract class IntegratedCircuit implements Serializable
     protected IOPort[] io;
     
 
-    protected abstract void serializeComponentSpecific(final BinaryWriter wr) throws IOException;
-    protected abstract void deserializeComponentSpecific(final BinaryReader rd) throws IOException, ClassNotFoundException;
+    protected abstract void serializeComponentSpecific(final YamlConfiguration conf);
+    protected abstract void deserializeComponentSpecific(final YamlConfiguration conf);
     protected abstract ComponentOrientation[] getValidOrientations();
     protected abstract void onTick();
     public abstract Location getIOLocation(int port);
@@ -162,113 +163,37 @@ public abstract class IntegratedCircuit implements Serializable
         return this instanceof EmulatedProcessor;
     }
     
-    public byte[] serialize() throws IOException
+    public void serialize(final YamlConfiguration conf)
     {
-        ByteArrayOutputStream s = new ByteArrayOutputStream();
-        BinaryWriter wr = new BinaryWriter(s);
-
-        wr.write(x);
-        wr.write(y);
-        wr.write(z);
-        wr.write(xsize);
-        wr.write(ysize);
-        wr.write(zsize);
-        wr.write(orientation.getValue());
+        conf.set("orient", orientation);
+        conf.set("world", world == null ? "" : world.getUID());
+        conf.set("x", x);
+        conf.set("y", y);
+        conf.set("z", z);
+        conf.set("xs", xsize);
+        conf.set("ys", ysize);
+        conf.set("zs", zsize);
+        conf.set("creator", creator == null ? "" : creator.getUniqueId());
+        conf.set("iocount", getIOCount());
+        
+        YamlConfiguration confIO = conf.getOrCreateSection("io");
+        YamlConfiguration confBlocks = conf.getOrCreateSection("asscoblocks");
+        
+        for (int i = 0; i < getIOCount(); ++i)
+        {
+            confIO.set(i + ".value", io[i].getValue());
+            confIO.set(i + ".direction", io[i].getDirection());
+        }
         
         if (assocblocks != null)
-        {
-            wr.write(assocblocks.size());
-         
             for (Triplet<Integer, Integer, Integer> block : assocblocks)
             {
-                wr.write(block.x);
-                wr.write(block.y);
-                wr.write(block.z);
+                confBlocks.set();
             }
-        }
-        else
-            wr.write(0);
-
-        wr.write(io.length);
-        
-        for (IOPort iop : io)
-            wr.write((byte)(iop.getValue() & (iop.getDirection() ? 0x80 : 0x00)));
-        
-        wr.write((byte)((creator == null ? 0 : 1) | (world == null ? 0 : 2)));
-        
-        if (creator != null)
-            wr.write(creator.getUniqueId());
-        
-        if (world != null)
-            wr.write(world.getUID());
-
-        serializeComponentSpecific(wr);
-        
-        wr.flush();
-        
-        return s.toByteArray();
     }
     
-    public void deserialize(byte[] arr) throws IOException, ClassNotFoundException
+    public void deserialize(final YamlConfiguration conf)
     {
-        ByteArrayInputStream s = new ByteArrayInputStream(arr);
-        BinaryReader rd = new BinaryReader(s);
-
-        x = rd.readInt();
-        y = rd.readInt();
-        z = rd.readInt();
-        xsize = rd.readInt();
-        ysize = rd.readInt();
-        zsize = rd.readInt();
-        orientation = ComponentOrientation.fromValue(rd.readByte());
         
-        if (assocblocks != null)
-            assocblocks.clear();
-        else
-            assocblocks = new ArrayList<>();
-
-        int len = rd.readInt();
-        
-        for (int i = 0; i < len; ++i)
-        {
-            int lx = rd.readInt();
-            int ly = rd.readInt();
-            int lz = rd.readInt();
-            
-            assocblocks.add(new Triplet<>(lx, ly, lz));
-        }
-        
-        len = rd.readInt();
-        io = new IOPort[len];
-        
-        for (int i = 0; i < len; ++i)
-        {
-            byte val = rd.readByte();
-            
-            io[i] = new IOPort(val & 0x0f, (val & 0x80) != 0);
-        }
-
-        byte flags = rd.readByte();
-        
-        if ((flags & 1) != 0)
-        {
-            UUID plr = rd.readUUID();
-
-            Entity ep = MCPUCore.srv.getEntity(plr);
-            
-            if (ep instanceof Player)
-                creator = (Player)ep;
-        }
-        
-        if ((flags & 2) != 0)
-        {
-            UUID wrld = rd.readUUID();
-            
-            world = MCPUCore.srv.getWorld(wrld);
-        }
-        
-        deserializeComponentSpecific(rd);
-        
-        s.close();
     }
 }
