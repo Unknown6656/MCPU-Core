@@ -1,22 +1,19 @@
 package epsilonpotato.mcpu.core.components;
 
-import java.io.IOException;
 import java.util.HashMap;
 
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
 import epsilonpotato.mcpu.core.*;
-import epsilonpotato.mcpu.core.components.factories.BinaryLogicGateFactory;
 import epsilonpotato.mcpu.util.*;
 
 
-public class BinaryLogicGate extends IntegratedCircuit
+public final class BinaryLogicGate extends IntegratedCircuit
 {
     private static final long serialVersionUID = 5380136094828040844L;
     public static final HashMap<ComponentOrientation, int[]> ports;
-    private BiFunction<Integer, Integer, Integer> func;
-    private String name;
+    private BinaryLogicGateType type;
 
 
     static
@@ -28,12 +25,11 @@ public class BinaryLogicGate extends IntegratedCircuit
         ports.put(ComponentOrientation.EAST, new int[] { 0, 2, 2, 2, 1, 0 });
     }
     
-    public BinaryLogicGate(Player creator, Location loc, BiFunction<Integer, Integer, Integer> func, String name, ComponentOrientation orient) throws InvalidOrientationException
+    public BinaryLogicGate(Player creator, Location loc, BinaryLogicGateType type, ComponentOrientation orient) throws InvalidOrientationException
     {
         super(creator, loc, new Triplet<>(3, 1, 3), 3, orient);
         
-        this.func = func;
-        this.name = name;
+        this.type = type;
 
         setIODirection(0, false);
         setIODirection(1, false);
@@ -51,7 +47,7 @@ public class BinaryLogicGate extends IntegratedCircuit
     {
         int x = io[0].getValue();
         int y = io[1].getValue();
-        int res = func.eval(x, y);
+        int res = type.eval(x, y);
         
         io[2].setValue((res & 0xff) != 0 ? 15 : 0);
     }
@@ -65,27 +61,18 @@ public class BinaryLogicGate extends IntegratedCircuit
     @Override
     public final String getState()
     {
-        return String.format("%s : %d, %d --> %d", name, io[0].getValue(), io[1].getValue(), io[2].getValue());
+        return String.format("%s : %d, %d --> %d", type.toString(), io[0].getValue(), io[1].getValue(), io[2].getValue());
     }
 
     @Override
-    protected void serializeComponentSpecific(BinaryWriter wr) throws IOException
+    protected final void serializeComponentSpecific(YamlConfiguration conf)
     {
-        byte[] delegate = Serializer.serialize(func);
-        
-        wr.write(name);
-        wr.write(delegate.length);
-        wr.write(delegate);
+        conf.put("type", type);
     }
 
     @Override
-    protected void deserializeComponentSpecific(BinaryReader rd) throws IOException, ClassNotFoundException
+    protected final void deserializeComponentSpecific(YamlConfiguration conf)
     {
-        name = rd.readString();
-        
-        int length = rd.readInt();
-        byte[] delegate = rd.readBytes(length);
-
-        func = Serializer.deserialize(delegate);
+        type = BinaryLogicGateType.valueOf(conf.getString("type", ""));
     }
 }

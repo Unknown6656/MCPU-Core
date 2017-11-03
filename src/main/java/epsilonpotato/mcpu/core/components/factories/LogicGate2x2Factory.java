@@ -10,6 +10,7 @@ import org.bukkit.entity.Player;
 import epsilonpotato.mcpu.core.*;
 import epsilonpotato.mcpu.util.*;
 import epsilonpotato.mcpu.core.components.LogicGate2x2;
+import epsilonpotato.mcpu.core.components.LogicGate2x2Type;
 
 import java.util.HashMap;
 
@@ -17,8 +18,7 @@ import java.util.HashMap;
 public final class LogicGate2x2Factory extends ComponentFactory<LogicGate2x2>
 {
     private static final HashMap<ComponentOrientation, Tuple<Integer, Integer>> signloc;
-    private final BiAction<int[], byte[]> func;
-    private final String name;
+    private final LogicGate2x2Type type;
     
     static
     {
@@ -30,10 +30,9 @@ public final class LogicGate2x2Factory extends ComponentFactory<LogicGate2x2>
     }
     
     
-    public LogicGate2x2Factory(BiAction<int[], byte[]> func, String name)
+    public LogicGate2x2Factory(LogicGate2x2Type type)
     {
-        this.func = func;
-        this.name = name;
+        this.type = type;
     }
     
     @Override
@@ -74,6 +73,6 @@ public final class LogicGate2x2Factory extends ComponentFactory<LogicGate2x2>
         });
         */
         
-        return new LogicGate2x2(p, new Location(context.getWorld(), x, y, z), func, name, or);
+        return new LogicGate2x2(p, new Location(context.getWorld(), x, y, z), type, or);
     }
 }

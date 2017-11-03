@@ -1,7 +1,5 @@
 package epsilonpotato.mcpu.core.components;
 
-import java.io.IOException;
-
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -11,9 +9,8 @@ import epsilonpotato.mcpu.core.BlockPlacingContext;
 import epsilonpotato.mcpu.core.ComponentOrientation;
 import epsilonpotato.mcpu.core.IntegratedCircuit;
 import epsilonpotato.mcpu.core.InvalidOrientationException;
-import epsilonpotato.mcpu.util.BinaryReader;
-import epsilonpotato.mcpu.util.BinaryWriter;
 import epsilonpotato.mcpu.util.Triplet;
+import epsilonpotato.mcpu.util.YamlConfiguration;
 
 /*
  * 4 pins x coord:  0..3
@@ -95,36 +92,24 @@ public final class WoolDisplay16x16 extends IntegratedCircuit
     }
 
     @Override
-    protected void serializeComponentSpecific(BinaryWriter wr) throws IOException
+    protected final void serializeComponentSpecific(final YamlConfiguration conf)
     {
-        for (int i = 0; i < 16; ++i)
-            for (int j = 0; j < 16; ++j)
-                wr.write(matrix[i][j]);
+        for (int y = 0; y < 16; ++y)
+            for (int x = 0; x < 16; ++x)
+                conf.set("x" + x + "_y" + y, (int)matrix[y][x]);
     }
     
     @Override
-    protected void deserializeComponentSpecific(BinaryReader rd) throws IOException
+    protected final void deserializeComponentSpecific(final YamlConfiguration conf)
     {
-        for (int i = 0; i < 16; ++i)
-            for (int j = 0; j < 16; ++j)
-                matrix[i][j] = rd.readByte();
+        for (int y = 0; y < 16; ++y)
+            for (int x = 0; x < 16; ++x)
+                matrix[y][x] = (byte)conf.getInt("x" + x + "_y" + y, 0);
     }
 
-    
     @Override
     public String getState()
     {
-        StringBuilder sb = new StringBuilder();
-
-        for (int i = 0; i < 16; ++i)
-        {
-            for (int j = 0; j < 16; ++j)
-                sb.append(String.format("%x", matrix[i][j]));
-            
-            if (i < 15)
-                sb.append('\n');
-        }
-        
-        return sb.toString();
+        return "//TODO//";
     }
 }

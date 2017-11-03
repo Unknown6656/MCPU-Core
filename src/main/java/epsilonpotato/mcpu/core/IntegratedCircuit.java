@@ -1,18 +1,12 @@
 package epsilonpotato.mcpu.core;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.UUID;
 import java.util.function.Function;
 
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
 import epsilonpotato.mcpu.util.*;
@@ -165,8 +159,8 @@ public abstract class IntegratedCircuit implements Serializable
     
     public void serialize(final YamlConfiguration conf)
     {
-        conf.set("orient", orientation);
-        conf.set("world", world == null ? "" : world.getUID());
+        conf.set("orient", (int)orientation.getValue());
+        conf.set("world", world == null ? "" : world.getUID().toString());
         conf.set("x", x);
         conf.set("y", y);
         conf.set("z", z);
@@ -174,26 +168,67 @@ public abstract class IntegratedCircuit implements Serializable
         conf.set("ys", ysize);
         conf.set("zs", zsize);
         conf.set("creator", creator == null ? "" : creator.getUniqueId());
-        conf.set("iocount", getIOCount());
         
         YamlConfiguration confIO = conf.getOrCreateSection("io");
         YamlConfiguration confBlocks = conf.getOrCreateSection("asscoblocks");
         
+        confIO.set("count", getIOCount());
+        
         for (int i = 0; i < getIOCount(); ++i)
         {
-            confIO.set(i + ".value", io[i].getValue());
-            confIO.set(i + ".direction", io[i].getDirection());
+            confIO.set("port_" + i + ".value", io[i].getValue());
+            confIO.set("port_" + i + ".direction", io[i].getDirection());
         }
+        
+        int num = 0;
         
         if (assocblocks != null)
             for (Triplet<Integer, Integer, Integer> block : assocblocks)
             {
-                confBlocks.set();
+                YamlConfiguration confBlock = confBlocks.getOrCreateSection("block_" + num);
+
+                confBlock.put("x", block.x);
+                confBlock.put("y", block.y);
+                confBlock.put("z", block.z);
+                
+                ++num;
             }
+        
+        confBlocks.set("count", num);
     }
     
     public void deserialize(final YamlConfiguration conf)
     {
+        orientation = ComponentOrientation.fromValue((byte)conf.getInt("orient", 0));
+        world = MCPUCore.srv.getWorld(conf.getUUID("world", null));
+        creator = MCPUCore.srv.getPlayer(conf.getUUID("creator", null));
+        x = conf.getInt("x", 0);
+        y = conf.getInt("y", 0);
+        z = conf.getInt("z", 0);
+        xsize = conf.getInt("xs", 0);
+        ysize = conf.getInt("ys", 0);
+        zsize = conf.getInt("zs", 0);
+
+        YamlConfiguration confIO = conf.getOrCreateSection("io");
+        YamlConfiguration confBlocks = conf.getOrCreateSection("asscoblocks");
+
+        io = new IOPort[confIO.getInt("count", 0)];
         
+        for (int i = 0; i < io.length; ++i)
+            if (confIO.containsKey("port_" + i))
+                io[i] = new IOPort(confIO.getInt("port_" + i + ".value", 0), confIO.getBoolean("port_" + i + ".direction", false));
+        
+        assocblocks = new ArrayList<>();
+        
+        for (int i = 0, cnt = confBlocks.getInt("count", 0); i < cnt; ++i)
+            if (confBlocks.containsKey("block_" + i))
+            {
+                YamlConfiguration confBlock = confBlocks.getOrCreateSection("block_" + i);
+
+                assocblocks.add(new Triplet<>(confBlock.getInt("x", 0), confBlock.getInt("y", 0), confBlock.getInt("z", 0)));
+            }
+        
+        if (assocblocks.isEmpty())
+            assocblocks = null;
     }
 }

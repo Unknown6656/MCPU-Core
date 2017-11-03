@@ -11,6 +11,7 @@ import org.bukkit.entity.Player;
 import epsilonpotato.mcpu.core.*;
 import epsilonpotato.mcpu.util.*;
 import epsilonpotato.mcpu.core.components.BinaryLogicGate;
+import epsilonpotato.mcpu.core.components.BinaryLogicGateType;
 
 import java.util.HashMap;
 
@@ -18,8 +19,7 @@ import java.util.HashMap;
 public final class BinaryLogicGateFactory extends ComponentFactory<BinaryLogicGate>
 {
     private static final HashMap<ComponentOrientation, Tuple<Integer, Integer>> signloc;
-    private final BiFunction<Integer, Integer, Integer> func;
-    private final String name;
+    private final BinaryLogicGateType type;
     
     static
     {
@@ -31,10 +31,9 @@ public final class BinaryLogicGateFactory extends ComponentFactory<BinaryLogicGa
     }
     
     
-    public BinaryLogicGateFactory(BiFunction<Integer, Integer, Integer> func, String name)
+    public BinaryLogicGateFactory(BinaryLogicGateType type)
     {
-        this.func = func;
-        this.name = name;
+        this.type = type;
     }
     
     @Override
@@ -50,7 +49,7 @@ public final class BinaryLogicGateFactory extends ComponentFactory<BinaryLogicGa
     {
         int[] pinloc = BinaryLogicGate.ports.get(or);
         boolean ns = or.isNorthSouth();
-        
+       
         // CREATE WOOL FRAME
         for (int i = 0; i < 3; ++i)
             context.addBlock(x + (ns ? 1 : i), y, z + (ns ? i : 1), Material.WOOL, b -> b.setData(DyeColor.BLACK.getWoolData())); // TODO: fix deprecated calls
@@ -65,12 +64,12 @@ public final class BinaryLogicGateFactory extends ComponentFactory<BinaryLogicGa
             Sign sign = (Sign)b.getState();
             
             sign.setLine(0, "BinaryGate");
-            sign.setLine(1, name);
+            sign.setLine(1, type.toString());
             sign.setLine(2, p.getDisplayName());
             sign.update();
         });
         
-        return new BinaryLogicGate(p, new Location(context.getWorld(), x, y, z), func, name, or);
+        return new BinaryLogicGate(p, new Location(context.getWorld(), x, y, z), type, or);
     }
 
 
