@@ -29,7 +29,16 @@ public abstract class IntegratedCircuit implements Serializable
     public abstract Location getIOLocation(int port);
     public abstract String getState();
     
-    
+
+    /**
+     * Do NOT use the empty constructor!! It is only there for YAML serialisation/deserialisation
+     * @deprecated Do NOT use the empty constructor!! It is only there for YAML serialisation/deserialisation
+     */
+    @Deprecated
+    protected IntegratedCircuit()
+    {
+    }
+     
     public IntegratedCircuit(Player creator, Location loc, Triplet<Integer, Integer, Integer> size, int iocount, ComponentOrientation orient)
             throws InvalidOrientationException
     {
@@ -159,8 +168,10 @@ public abstract class IntegratedCircuit implements Serializable
     
     public void serialize(final YamlConfiguration conf)
     {
+        serializeComponentSpecific(conf.getOrCreateSection("inner"));
+        
         conf.set("orient", (int)orientation.getValue());
-        conf.set("world", world == null ? "" : world.getUID().toString());
+        conf.set("world", world == null ? "" : world.getUID());
         conf.set("x", x);
         conf.set("y", y);
         conf.set("z", z);
@@ -199,9 +210,11 @@ public abstract class IntegratedCircuit implements Serializable
     
     public void deserialize(final YamlConfiguration conf)
     {
+        deserializeComponentSpecific(conf.getOrCreateSection("inner"));
+        
         orientation = ComponentOrientation.fromValue((byte)conf.getInt("orient", 0));
-        world = MCPUCore.srv.getWorld(conf.getUUID("world", null));
         creator = MCPUCore.srv.getPlayer(conf.getUUID("creator", null));
+        world = MCPUCore.srv.getWorld(conf.getUUID("world", null));
         x = conf.getInt("x", 0);
         y = conf.getInt("y", 0);
         z = conf.getInt("z", 0);

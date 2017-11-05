@@ -28,6 +28,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.server.TabCompleteEvent;
 import org.bukkit.event.world.WorldInitEvent;
 import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.event.world.WorldSaveEvent;
@@ -192,7 +193,7 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
         for (IntegratedCircuit ic : circuits.values())
             if (ic instanceof EmulatedProcessor)
                 ((EmulatedProcessor)ic).stop();
-            
+           
         onWorldSaveEvent(null);
     }
     
@@ -363,14 +364,23 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
      * @return Command completition list
      */
     @EventHandler
-    public final List<String> onTabComplete(CommandSender sender, Command cmd, String[] args)
+    public final void onTabCompleteEvent(TabCompleteEvent event)
     {
-        print(ChatColor.AQUA, cmd.getName());
+        String[] tokens = event.getBuffer().split("\\s+");
         
-        for (String s : args)
-            print(ChatColor.AQUA, s);
+        System.out.println(String.join("|", tokens));
         
-        if (cmd.getName().equalsIgnoreCase("mcpu"))
+        List<String> compl = onTabComplete(event.getSender(), tokens[0], tokens);
+        
+        compl = compl == null ? new LinkedList<>() : compl;
+        compl.addAll(event.getCompletions());
+        
+        event.setCompletions(compl);
+    }
+    
+    public final List<String> onTabComplete(CommandSender sender, String cmd, String[] args)
+    {
+        if (cmd.equalsIgnoreCase("/mcpu"))
         {
             LinkedList<String> list = new LinkedList<>();
             
@@ -511,12 +521,21 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
                             if (c.assocblocks == null)
                                 deleteRegion(c.world, c.x, c.y, c.z, c.xsize, c.ysize, c.zsize);
                             else
+                            {
                                 Parallel.For(0, c.assocblocks.size(), ndx ->
                                 {
                                     Triplet<Integer, Integer, Integer> loc = c.assocblocks.get(ndx);
                                     
                                     c.world.getBlockAt(loc.x, loc.y, loc.z).setType(Material.AIR);
                                 });
+                                Parallel.For(0, c.assocblocks.size(), ndx ->
+                                {
+                                    Triplet<Integer, Integer, Integer> loc = c.assocblocks.get(ndx);
+
+                                    // have to do this separately because of missing block updates.
+                                    c.world.getBlockAt(loc.x, loc.y, loc.z).getState().update();
+                                });
+                            }
                             
                             print(sender, ChatColor.GREEN, "The component No. " + i + " has been removed from the world.");
                         }
@@ -889,11 +908,11 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
             
             if (ic != null)
             {
-                YamlConfiguration confIC = ics.getOrCreateSection("ic_" + num); 
+                YamlConfiguration confIC = ics.getOrCreateSection("ic_" + num);
+                
+                confIC.set("type", ic.getClass().getTypeName());
                 
                 ic.serialize(confIC.getOrCreateSection("yaml"));
-                
-                confIC.set("raw", ic);
                 
                 ++num;
             }
@@ -909,21 +928,27 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
      */
     public final void deserialize(YamlConfiguration conf)
     {
-        int cnt = conf.getInt("circuit_count", 0);
         YamlConfiguration ics = conf.getOrCreateSection("circuits");
+        int cnt = conf.getInt("circuit_count", 0);
         
         circuits.clear();
-        
+
         for (int index = 0; index < cnt; ++index)
             if (ics.containsKey("ic_" + index))
-            {
-                YamlConfiguration icmap = ics.getOrCreateSection("ic_" + index + ".yaml");
-                IntegratedCircuit ic = (IntegratedCircuit)ics.get("ic_" + index + ".raw");
-                
-                ic.deserialize(icmap);
-                
-                circuits.put(index, ic);
-            }
+                try
+                {
+                    YamlConfiguration icmap = ics.getOrCreateSection("ic_" + index + ".yaml");
+                    String icname = ics.getString("ic_" + index + ".type", null);
+                    IntegratedCircuit ic = (IntegratedCircuit)Class.forName(icname).newInstance();
+                    
+                    ic.deserialize(icmap);
+                    
+                    circuits.put(index, ic);
+                }
+                catch (InstantiationException | IllegalAccessException | ClassNotFoundException e)
+                {
+                    e.printStackTrace();
+                }
     }
     
     private void getIC(final String[] argv, final int ndx, final CommandSender sender, Action<IntegratedCircuit> action)

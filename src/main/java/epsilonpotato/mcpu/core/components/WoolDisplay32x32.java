@@ -25,6 +25,16 @@ public final class WoolDisplay32x32 extends IntegratedCircuit
     protected static final Material base_material = Material.CONCRETE;
     private byte[][] matrix = new byte[32][32];
             
+
+    /**
+     * Do NOT use the empty constructor!! It is only there for YAML serialisation/deserialisation
+     * @deprecated Do NOT use the empty constructor!! It is only there for YAML serialisation/deserialisation
+     */
+    @Deprecated
+    public WoolDisplay32x32()
+    {
+         super();
+    }
     
     public WoolDisplay32x32(Player p, World w, int x, int y, int z) throws InvalidOrientationException
     {

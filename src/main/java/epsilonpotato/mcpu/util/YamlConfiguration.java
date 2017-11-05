@@ -48,22 +48,58 @@ public final class YamlConfiguration implements Map<String, Object>
     public boolean getBoolean(String path, boolean defaultValue)
     {
         Object value = get(path);
-        
-        return value instanceof Boolean ? (boolean)value : defaultValue;
+
+        if (value == null)
+            return defaultValue;
+        else if (value instanceof Boolean)
+            return (boolean)value;
+        else
+            try
+            {
+                return Boolean.parseBoolean(value.toString());
+            }
+            catch (Exception e)
+            {
+                return defaultValue;
+            }
     }
     
     public double getDouble(String path, double defaultValue)
     {
         Object value = get(path);
 
-        return value instanceof Double ? (double)value : defaultValue;
+        if (value == null)
+            return defaultValue;
+        else if (value instanceof Double)
+            return (double)value;
+        else
+            try
+            {
+                return Double.parseDouble(value.toString());
+            }
+            catch (Exception e)
+            {
+                return defaultValue;
+            }
     }
     
     public int getInt(String path, int defaultValue)
     {
         Object value = get(path);
 
-        return value instanceof Integer ? (int)value : defaultValue;
+        if (value == null)
+            return defaultValue;
+        else if (value instanceof Integer)
+            return (int)value;
+        else
+            try
+            {
+                return Integer.parseInt(value.toString());
+            }
+            catch (Exception e)
+            {
+                return defaultValue;
+            }
     }
 
     @SuppressWarnings("unchecked")
@@ -88,12 +124,19 @@ public final class YamlConfiguration implements Map<String, Object>
     {
         Object value = get(path);
         
-        if (value instanceof Long)
-            return (long)value;
-        else if (value instanceof Integer)
-            return (long)(int)value;
-        else
+        if (value == null)
             return defaultValue;
+        else if (value instanceof Long)
+            return (long)value;
+        else
+            try
+            {
+                return Long.parseLong(value.toString());
+            }
+            catch (Exception e)
+            {
+                return defaultValue;
+            }
     }
     
     @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -141,10 +184,17 @@ public final class YamlConfiguration implements Map<String, Object>
     }
     
     public UUID getUUID(String path, UUID defaultValue)
-    {
-        String uuid = getString(path, "");
+    {   
+        Object uuid = get(path);
 
-        return uuid.length() != 0 ? UUID.fromString(uuid) : defaultValue;
+        if (uuid == null)
+            return defaultValue;
+        else if (uuid instanceof UUID)
+            return (UUID)uuid;
+        else if (uuid instanceof String)
+            return UUID.fromString((String)uuid);
+        else
+            return UUID.fromString(uuid.toString());
     }
     
     @Override
@@ -335,11 +385,13 @@ public final class YamlConfiguration implements Map<String, Object>
         try
         {
             Object o = new Yaml().load(rdr);
-            
+
             return o instanceof Map ? new YamlConfiguration((Map<String, Object>)o) : emptyConfiguration();
         }
         catch (Exception ex)
         {
+            ex.printStackTrace();
+            
             return emptyConfiguration();
         }
     }

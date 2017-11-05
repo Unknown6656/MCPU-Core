@@ -14,6 +14,16 @@ public final class Multiplexer1to8 extends IntegratedCircuit
 {
     private static final long serialVersionUID = 6750744897247302453L;
 
+
+    /**
+     * Do NOT use the empty constructor!! It is only there for YAML serialisation/deserialisation
+     * @deprecated Do NOT use the empty constructor!! It is only there for YAML serialisation/deserialisation
+     */
+    @Deprecated
+    public Multiplexer1to8()
+    {
+         super();
+    }
     
     public Multiplexer1to8(Player creator, Location loc, ComponentOrientation orient) throws InvalidOrientationException
     {

@@ -55,6 +55,16 @@ public final class SevenSegmentDisplay extends IntegratedCircuit
     private static final Material materialOff = Material.NETHER_BRICK;
     private byte ioval = 0x00;
     
+
+    /**
+     * Do NOT use the empty constructor!! It is only there for YAML serialisation/deserialisation
+     * @deprecated Do NOT use the empty constructor!! It is only there for YAML serialisation/deserialisation
+     */
+    @Deprecated
+    public SevenSegmentDisplay()
+    {
+         super();
+    }
     
     public SevenSegmentDisplay(Player p, World w, int x, int y, int z) throws InvalidOrientationException
     {

@@ -9,12 +9,22 @@ import epsilonpotato.mcpu.util.*;
 public abstract class SquareEmulatedProcessor extends LeverAwareEmulatedProcessor
 {
     private static final long serialVersionUID = -78130561939840819L;
-    protected final int sidecount; 
+    protected int sidecount; 
 
     
     protected abstract void deserializeProcessorState(final YamlConfiguration conf);
     protected abstract void serializeProcessorState(final YamlConfiguration conf);
     
+
+    /**
+     * Do NOT use the empty constructor!! It is only there for YAML serialisation/deserialisation
+     * @deprecated Do NOT use the empty constructor!! It is only there for YAML serialisation/deserialisation
+     */
+    @Deprecated
+    public SquareEmulatedProcessor()
+    {
+         super();
+    }
     
     public SquareEmulatedProcessor(Player p, Location l, int iosidecount)
             throws Exception
@@ -73,6 +83,7 @@ public abstract class SquareEmulatedProcessor extends LeverAwareEmulatedProcesso
     {
         conf.set("ticks", ticks);
         conf.set("canrun", canrun);
+        conf.set("sidecount", sidecount);
 
         serializeProcessorState(conf.getOrCreateSection("specific"));
     }
@@ -82,6 +93,7 @@ public abstract class SquareEmulatedProcessor extends LeverAwareEmulatedProcesso
     {
         ticks = conf.getLong("ticks", 0);
         canrun = conf.getBoolean("canrun", false);
+        sidecount = conf.getInt("sidecount", 0);
 
         deserializeProcessorState(conf.getOrCreateSection("specific"));
     }

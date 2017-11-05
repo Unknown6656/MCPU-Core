@@ -24,6 +24,16 @@ public final class BinaryLogicGate extends IntegratedCircuit
         ports.put(ComponentOrientation.SOUTH, new int[] { 2, 0, 2, 2, 0, 1 });
         ports.put(ComponentOrientation.EAST, new int[] { 0, 2, 2, 2, 1, 0 });
     }
+
+    /**
+     * Do NOT use the empty constructor!! It is only there for YAML serialisation/deserialisation
+     * @deprecated Do NOT use the empty constructor!! It is only there for YAML serialisation/deserialisation
+     */
+    @Deprecated
+    public BinaryLogicGate()
+    {
+         super();
+    }
     
     public BinaryLogicGate(Player creator, Location loc, BinaryLogicGateType type, ComponentOrientation orient) throws InvalidOrientationException
     {

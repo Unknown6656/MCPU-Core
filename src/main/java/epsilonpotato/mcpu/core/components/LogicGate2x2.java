@@ -25,6 +25,16 @@ public class LogicGate2x2 extends IntegratedCircuit
         ports.put(ComponentOrientation.EAST, new int[] { 0, 3, 2, 3, 0, 0, 2, 0 });
     }
 
+    /**
+     * Do NOT use the empty constructor!! It is only there for YAML serialisation/deserialisation
+     * @deprecated Do NOT use the empty constructor!! It is only there for YAML serialisation/deserialisation
+     */
+    @Deprecated
+    public LogicGate2x2()
+    {
+         super();
+    }
+    
     public LogicGate2x2(Player creator, Location loc, LogicGate2x2Type type, ComponentOrientation orient) throws InvalidOrientationException
     {
         super(creator, loc, orient.isNorthSouth() ? new Triplet<>(4, 1, 3) : new Triplet<>(3, 1, 4), 4, orient);
@@ -73,8 +83,6 @@ public class LogicGate2x2 extends IntegratedCircuit
 
         YamlConfiguration confState = conf.getOrCreateSection("state");
         
-        confState.set("count", state.length);
-        
         for (int i = 0; i < state.length; ++i)
             confState.set("slot_" + i, state[i]);
     }
@@ -86,9 +94,10 @@ public class LogicGate2x2 extends IntegratedCircuit
         
         YamlConfiguration confState = conf.getOrCreateSection("state");
         
-        state = new byte[conf.getInt("count", 0)];
+        state = new byte[16];
 
         for (int i = 0; i < state.length; ++i)
-            state[i] = (byte)confState.getInt("slot_" + i, 0);
+            if (confState.containsKey("slot_" + i))
+                state[i] = (byte)confState.getInt("slot_" + i, 0);
     }
 }

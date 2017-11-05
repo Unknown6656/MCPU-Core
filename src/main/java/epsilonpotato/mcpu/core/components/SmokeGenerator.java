@@ -27,6 +27,16 @@ public class SmokeGenerator extends IntegratedCircuit
         ports.put(ComponentOrientation.SOUTH, new int[] { 2, 1 });
         ports.put(ComponentOrientation.EAST, new int[] { 1, 2 });
     }
+
+    /**
+     * Do NOT use the empty constructor!! It is only there for YAML serialisation/deserialisation
+     * @deprecated Do NOT use the empty constructor!! It is only there for YAML serialisation/deserialisation
+     */
+    @Deprecated
+    public SmokeGenerator()
+    {
+         super();
+    }
     
     public SmokeGenerator(Player creator, Location loc, ComponentOrientation orient) throws InvalidOrientationException
     {

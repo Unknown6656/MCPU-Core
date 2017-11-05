@@ -14,6 +14,16 @@ public final class Demultiplexer1to8 extends IntegratedCircuit
 {
     private static final long serialVersionUID = -2274271689940133471L;
 
+
+    /**
+     * Do NOT use the empty constructor!! It is only there for YAML serialisation/deserialisation
+     * @deprecated Do NOT use the empty constructor!! It is only there for YAML serialisation/deserialisation
+     */
+    @Deprecated
+    public Demultiplexer1to8()
+    {
+         super();
+    }
     
     public Demultiplexer1to8(Player creator, Location loc, ComponentOrientation orient) throws InvalidOrientationException
     {
