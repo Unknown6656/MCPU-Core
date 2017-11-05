@@ -8,23 +8,37 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 
-public class Parallel
+/**
+ * A class containing parallelisation utility functions
+ * @author Unknown6656
+ */
+public final class Parallel
 {
     static final int nCPU = Runtime.getRuntime().availableProcessors();
     
     
-    public static <T> void ForEach(Iterable<T> parameters, final Action<T> loopBody)
+    private Parallel()
+    {
+    }
+    
+    /**
+     * Executes the given function for every element in the given collection in parallel
+     * @param <T> Generic collection type
+     * @param collection Collection
+     * @param func Iteration function
+     */
+    public static <T> void ForEach(Iterable<T> collection, final Action<T> func)
     {
         ExecutorService executor = Executors.newFixedThreadPool(nCPU);
         List<Future<?>> futures = new LinkedList<Future<?>>();
         
-        for (final T param : parameters)
+        for (final T param : collection)
         {
             Future<?> future = executor.submit(new Runnable()
             {
                 public void run()
                 {
-                    loopBody.eval(param);
+                    func.eval(param);
                 }
             });
             
@@ -46,7 +60,13 @@ public class Parallel
         executor.shutdown();
     }
     
-    public static void For(int start, int stop, final Action<Integer> loopBody)
+    /**
+     * Executes the given function for every integer in the given range in parallel
+     * @param start Integer lower inclusive range limit
+     * @param stop Integer upper exclusive range limit
+     * @param func Iteration function
+     */
+    public static void For(int start, int stop, final Action<Integer> func)
     {
         ExecutorService executor = Executors.newFixedThreadPool(nCPU);
         List<Future<?>> futures = new LinkedList<Future<?>>();
@@ -56,7 +76,7 @@ public class Parallel
             {
                 final int k = i;
                 
-                Future<?> future = executor.submit(() -> loopBody.eval(k));
+                Future<?> future = executor.submit(() -> func.eval(k));
                 
                 futures.add(future);
             }
@@ -69,7 +89,7 @@ public class Parallel
                 futures.add(executor.submit(() ->
                 {
                     for (int j = 0, l = k < nCPU - 1 ? block : stop - start - block * k; j < l; ++j)
-                        loopBody.eval(j + k * block + start);
+                        func.eval(j + k * block + start);
                 }));
             }
         

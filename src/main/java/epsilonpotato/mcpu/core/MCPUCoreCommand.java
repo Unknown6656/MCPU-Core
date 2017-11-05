@@ -6,6 +6,10 @@ import java.util.LinkedList;
 import java.util.Set;
 
 
+/**
+ * Represents an enumeration of possible MCPU core plugin commands
+ * @author Unknown6656
+ */
 public enum MCPUCoreCommand implements Serializable
 {
     HELP("?", "help"),
@@ -43,12 +47,19 @@ public enum MCPUCoreCommand implements Serializable
         val = cmds;
     }
     
+    /**
+     * @see java.lang.Enum#toString()
+     */
     @Override
     public String toString()
     {
         return String.join(", ", getValues());
     }
     
+    /**
+     * Returns a list of string commands which are associated with the current instance
+     * @return List of string commands
+     */
     public LinkedList<String> getValues()
     {
         LinkedList<String> cmds = new LinkedList<>();
@@ -60,6 +71,11 @@ public enum MCPUCoreCommand implements Serializable
         return cmds;
     }
 
+    /**
+     * Returns the command associated with the given string command
+     * @param val String command
+     * @return Command
+     */
     public static MCPUCoreCommand getByValue(String val)
     {
         val = val.toLowerCase().trim();
@@ -70,6 +86,10 @@ public enum MCPUCoreCommand implements Serializable
             return MCPUCoreCommand.UNKNOWN;
     }
     
+    /**
+     * Returns the set of all registered string commands
+     * @return String command set
+     */
     public static Set<String> getAllCommands()
     {
         return map.keySet();
