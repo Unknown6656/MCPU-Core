@@ -1,22 +1,29 @@
 package epsilonpotato.mcpu.core.components;
 
-import java.io.IOException;
-
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
 import epsilonpotato.mcpu.core.ComponentOrientation;
 import epsilonpotato.mcpu.core.IntegratedCircuit;
 import epsilonpotato.mcpu.core.InvalidOrientationException;
-import epsilonpotato.mcpu.util.BinaryReader;
-import epsilonpotato.mcpu.util.BinaryWriter;
 import epsilonpotato.mcpu.util.Triplet;
+import epsilonpotato.mcpu.util.YamlConfiguration;
 
 
 public final class Multiplexer1to8 extends IntegratedCircuit
 {
     private static final long serialVersionUID = 6750744897247302453L;
 
+
+    /**
+     * Do NOT use the empty constructor!! It is only there for YAML serialisation/deserialisation
+     * @deprecated Do NOT use the empty constructor!! It is only there for YAML serialisation/deserialisation
+     */
+    @Deprecated
+    public Multiplexer1to8()
+    {
+         super();
+    }
     
     public Multiplexer1to8(Player creator, Location loc, ComponentOrientation orient) throws InvalidOrientationException
     {
@@ -71,13 +78,15 @@ public final class Multiplexer1to8 extends IntegratedCircuit
         return String.format("%d (%s) --> out", sel, io[sel].isLow() ? "low" : "high");
     }
 
-    @Override
-    protected void serializeComponentSpecific(BinaryWriter wr) throws IOException
-    {
-    }
 
     @Override
-    protected void deserializeComponentSpecific(BinaryReader rd) throws IOException, ClassNotFoundException
+    protected final void serializeComponentSpecific(YamlConfiguration conf)
     {
+    }
+    
+
+    @Override
+    protected final void deserializeComponentSpecific(YamlConfiguration conf)
+    {   
     }
 }

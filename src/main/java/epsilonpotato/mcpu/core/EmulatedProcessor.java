@@ -1,7 +1,6 @@
 package epsilonpotato.mcpu.core;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URL;
@@ -13,9 +12,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
 
-import epsilonpotato.mcpu.util.BinaryReader;
-import epsilonpotato.mcpu.util.BinaryWriter;
-import epsilonpotato.mcpu.util.Triplet;
+import epsilonpotato.mcpu.util.*;
 
 
 public abstract class EmulatedProcessor extends IntegratedCircuit
@@ -34,6 +31,16 @@ public abstract class EmulatedProcessor extends IntegratedCircuit
     public abstract boolean load(String code);
 
 
+    /**
+     * Do NOT use the empty constructor!! It is only there for YAML serialisation/deserialisation
+     * @deprecated Do NOT use the empty constructor!! It is only there for YAML serialisation/deserialisation
+     */
+    @Deprecated
+    public EmulatedProcessor()
+    {
+         super();
+    }
+    
     public EmulatedProcessor(Player p, Location l, Triplet<Integer, Integer, Integer> size, int iocount, ComponentOrientation orient)
             throws InvalidOrientationException
     {
@@ -147,16 +154,16 @@ public abstract class EmulatedProcessor extends IntegratedCircuit
     }
 
     @Override
-    protected void deserializeComponentSpecific(final BinaryReader rd) throws IOException
+    protected void deserializeComponentSpecific(final YamlConfiguration conf)
     {
-        ticks = rd.readLong();
-        canrun = rd.readByte() != 0;
+        ticks = conf.getLong("ticks", 0);
+        canrun = conf.getBoolean("canrun", false);
     }
     
     @Override
-    protected void serializeComponentSpecific(final BinaryWriter wr) throws IOException
+    protected void serializeComponentSpecific(final YamlConfiguration conf)
     {
-        wr.write(ticks);
-        wr.write(canrun ? -1 : 0);
+        conf.set("ticks", ticks);
+        conf.set("canrun", canrun);
     }
 }

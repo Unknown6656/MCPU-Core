@@ -1,6 +1,5 @@
 package epsilonpotato.mcpu.core.components;
 
-import java.io.IOException;
 import java.util.HashMap;
 
 import org.bukkit.Location;
@@ -13,9 +12,8 @@ public class LogicGate2x2 extends IntegratedCircuit
 {
     private static final long serialVersionUID = -8450797721098705457L;
     public static final HashMap<ComponentOrientation, int[]> ports;
-    private BiAction<int[], byte[]> func;
     private byte[] state = new byte[16];
-    private String name;
+    private LogicGate2x2Type type;
     
 
     static
@@ -27,12 +25,21 @@ public class LogicGate2x2 extends IntegratedCircuit
         ports.put(ComponentOrientation.EAST, new int[] { 0, 3, 2, 3, 0, 0, 2, 0 });
     }
 
-    public LogicGate2x2(Player creator, Location loc, BiAction<int[], byte[]> func, String name, ComponentOrientation orient) throws InvalidOrientationException
+    /**
+     * Do NOT use the empty constructor!! It is only there for YAML serialisation/deserialisation
+     * @deprecated Do NOT use the empty constructor!! It is only there for YAML serialisation/deserialisation
+     */
+    @Deprecated
+    public LogicGate2x2()
+    {
+         super();
+    }
+    
+    public LogicGate2x2(Player creator, Location loc, LogicGate2x2Type type, ComponentOrientation orient) throws InvalidOrientationException
     {
         super(creator, loc, orient.isNorthSouth() ? new Triplet<>(4, 1, 3) : new Triplet<>(3, 1, 4), 4, orient);
         
-        this.func = func;
-        this.name = name;
+        this.type = type;
 
         setIODirection(0, false);
         setIODirection(1, false);
@@ -51,7 +58,7 @@ public class LogicGate2x2 extends IntegratedCircuit
     {
         int[] data = new int[] { io[0].getValue(), io[1].getValue(), 0, 0 };
         
-        func.eval(data, state);
+        type.eval(data, state);
 
         io[2].setValue((data[2] & 0xff) != 0 ? 15 : 0);
         io[3].setValue((data[3] & 0xff) != 0 ? 15 : 0);
@@ -66,29 +73,31 @@ public class LogicGate2x2 extends IntegratedCircuit
     @Override
     public final String getState()
     {
-        return String.format("%s : %d, %d --> %d, %d", name, io[0].getValue(), io[1].getValue(), io[2].getValue(), io[3].getValue());
+        return String.format("%s : %d, %d --> %d, %d", type.toString(), io[0].getValue(), io[1].getValue(), io[2].getValue(), io[3].getValue());
     }
 
     @Override
-    protected void serializeComponentSpecific(BinaryWriter wr) throws IOException
+    protected void serializeComponentSpecific(final YamlConfiguration conf)
     {
-        byte[] delegate = Serializer.serialize(func);
+        conf.set("type", type.toString());
+
+        YamlConfiguration confState = conf.getOrCreateSection("state");
         
-        wr.write(name);
-        wr.write(delegate.length);
-        wr.write(delegate);
-        wr.write(state);
+        for (int i = 0; i < state.length; ++i)
+            confState.set("slot_" + i, state[i]);
     }
 
     @Override
-    protected void deserializeComponentSpecific(BinaryReader rd) throws IOException, ClassNotFoundException
+    protected void deserializeComponentSpecific(final YamlConfiguration conf)
     {
-        name = rd.readString();
+        type = LogicGate2x2Type.valueOf(conf.getString("type", ""));
         
-        int length = rd.readInt();
-        byte[] delegate = rd.readBytes(length);
+        YamlConfiguration confState = conf.getOrCreateSection("state");
+        
+        state = new byte[16];
 
-        func = Serializer.deserialize(delegate);
-        state = rd.readBytes(16);
+        for (int i = 0; i < state.length; ++i)
+            if (confState.containsKey("slot_" + i))
+                state[i] = (byte)confState.getInt("slot_" + i, 0);
     }
 }
