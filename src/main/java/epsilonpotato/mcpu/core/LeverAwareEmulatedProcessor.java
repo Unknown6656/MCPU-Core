@@ -15,6 +15,16 @@ public abstract class LeverAwareEmulatedProcessor extends EmulatedProcessor
     
     public abstract Location getLeverLocation();
     
+
+    /**
+     * Do NOT use the empty constructor!! It is only there for YAML serialisation/deserialisation
+     * @deprecated Do NOT use the empty constructor!! It is only there for YAML serialisation/deserialisation
+     */
+    @Deprecated
+    public LeverAwareEmulatedProcessor()
+    {
+         super();
+    }
     
     public LeverAwareEmulatedProcessor(Player p, Location l, Triplet<Integer, Integer, Integer> size, int iocount, ComponentOrientation orient)
             throws InvalidOrientationException

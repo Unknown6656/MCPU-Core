@@ -1,17 +1,12 @@
 package epsilonpotato.mcpu.core;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.UUID;
 import java.util.function.Function;
 
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
 import epsilonpotato.mcpu.util.*;
@@ -27,14 +22,23 @@ public abstract class IntegratedCircuit implements Serializable
     protected IOPort[] io;
     
 
-    protected abstract void serializeComponentSpecific(final BinaryWriter wr) throws IOException;
-    protected abstract void deserializeComponentSpecific(final BinaryReader rd) throws IOException, ClassNotFoundException;
+    protected abstract void serializeComponentSpecific(final YamlConfiguration conf);
+    protected abstract void deserializeComponentSpecific(final YamlConfiguration conf);
     protected abstract ComponentOrientation[] getValidOrientations();
     protected abstract void onTick();
     public abstract Location getIOLocation(int port);
     public abstract String getState();
     
-    
+
+    /**
+     * Do NOT use the empty constructor!! It is only there for YAML serialisation/deserialisation
+     * @deprecated Do NOT use the empty constructor!! It is only there for YAML serialisation/deserialisation
+     */
+    @Deprecated
+    protected IntegratedCircuit()
+    {
+    }
+     
     public IntegratedCircuit(Player creator, Location loc, Triplet<Integer, Integer, Integer> size, int iocount, ComponentOrientation orient)
             throws InvalidOrientationException
     {
@@ -162,113 +166,82 @@ public abstract class IntegratedCircuit implements Serializable
         return this instanceof EmulatedProcessor;
     }
     
-    public byte[] serialize() throws IOException
+    public void serialize(final YamlConfiguration conf)
     {
-        ByteArrayOutputStream s = new ByteArrayOutputStream();
-        BinaryWriter wr = new BinaryWriter(s);
-
-        wr.write(x);
-        wr.write(y);
-        wr.write(z);
-        wr.write(xsize);
-        wr.write(ysize);
-        wr.write(zsize);
-        wr.write(orientation.getValue());
+        serializeComponentSpecific(conf.getOrCreateSection("inner"));
+        
+        conf.set("orient", (int)orientation.getValue());
+        conf.set("world", world == null ? "" : world.getUID());
+        conf.set("x", x);
+        conf.set("y", y);
+        conf.set("z", z);
+        conf.set("xs", xsize);
+        conf.set("ys", ysize);
+        conf.set("zs", zsize);
+        conf.set("creator", creator == null ? "" : creator.getUniqueId());
+        
+        YamlConfiguration confIO = conf.getOrCreateSection("io");
+        YamlConfiguration confBlocks = conf.getOrCreateSection("asscoblocks");
+        
+        confIO.set("count", getIOCount());
+        
+        for (int i = 0; i < getIOCount(); ++i)
+        {
+            confIO.set("port_" + i + ".value", io[i].getValue());
+            confIO.set("port_" + i + ".direction", io[i].getDirection());
+        }
+        
+        int num = 0;
         
         if (assocblocks != null)
-        {
-            wr.write(assocblocks.size());
-         
             for (Triplet<Integer, Integer, Integer> block : assocblocks)
             {
-                wr.write(block.x);
-                wr.write(block.y);
-                wr.write(block.z);
+                YamlConfiguration confBlock = confBlocks.getOrCreateSection("block_" + num);
+
+                confBlock.put("x", block.x);
+                confBlock.put("y", block.y);
+                confBlock.put("z", block.z);
+                
+                ++num;
             }
-        }
-        else
-            wr.write(0);
-
-        wr.write(io.length);
         
-        for (IOPort iop : io)
-            wr.write((byte)(iop.getValue() & (iop.getDirection() ? 0x80 : 0x00)));
-        
-        wr.write((byte)((creator == null ? 0 : 1) | (world == null ? 0 : 2)));
-        
-        if (creator != null)
-            wr.write(creator.getUniqueId());
-        
-        if (world != null)
-            wr.write(world.getUID());
-
-        serializeComponentSpecific(wr);
-        
-        wr.flush();
-        
-        return s.toByteArray();
+        confBlocks.set("count", num);
     }
     
-    public void deserialize(byte[] arr) throws IOException, ClassNotFoundException
+    public void deserialize(final YamlConfiguration conf)
     {
-        ByteArrayInputStream s = new ByteArrayInputStream(arr);
-        BinaryReader rd = new BinaryReader(s);
+        deserializeComponentSpecific(conf.getOrCreateSection("inner"));
+        
+        orientation = ComponentOrientation.fromValue((byte)conf.getInt("orient", 0));
+        creator = MCPUCore.srv.getPlayer(conf.getUUID("creator", null));
+        world = MCPUCore.srv.getWorld(conf.getUUID("world", null));
+        x = conf.getInt("x", 0);
+        y = conf.getInt("y", 0);
+        z = conf.getInt("z", 0);
+        xsize = conf.getInt("xs", 0);
+        ysize = conf.getInt("ys", 0);
+        zsize = conf.getInt("zs", 0);
 
-        x = rd.readInt();
-        y = rd.readInt();
-        z = rd.readInt();
-        xsize = rd.readInt();
-        ysize = rd.readInt();
-        zsize = rd.readInt();
-        orientation = ComponentOrientation.fromValue(rd.readByte());
-        
-        if (assocblocks != null)
-            assocblocks.clear();
-        else
-            assocblocks = new ArrayList<>();
+        YamlConfiguration confIO = conf.getOrCreateSection("io");
+        YamlConfiguration confBlocks = conf.getOrCreateSection("asscoblocks");
 
-        int len = rd.readInt();
+        io = new IOPort[confIO.getInt("count", 0)];
         
-        for (int i = 0; i < len; ++i)
-        {
-            int lx = rd.readInt();
-            int ly = rd.readInt();
-            int lz = rd.readInt();
-            
-            assocblocks.add(new Triplet<>(lx, ly, lz));
-        }
+        for (int i = 0; i < io.length; ++i)
+            if (confIO.containsKey("port_" + i))
+                io[i] = new IOPort(confIO.getInt("port_" + i + ".value", 0), confIO.getBoolean("port_" + i + ".direction", false));
         
-        len = rd.readInt();
-        io = new IOPort[len];
+        assocblocks = new ArrayList<>();
         
-        for (int i = 0; i < len; ++i)
-        {
-            byte val = rd.readByte();
-            
-            io[i] = new IOPort(val & 0x0f, (val & 0x80) != 0);
-        }
+        for (int i = 0, cnt = confBlocks.getInt("count", 0); i < cnt; ++i)
+            if (confBlocks.containsKey("block_" + i))
+            {
+                YamlConfiguration confBlock = confBlocks.getOrCreateSection("block_" + i);
 
-        byte flags = rd.readByte();
+                assocblocks.add(new Triplet<>(confBlock.getInt("x", 0), confBlock.getInt("y", 0), confBlock.getInt("z", 0)));
+            }
         
-        if ((flags & 1) != 0)
-        {
-            UUID plr = rd.readUUID();
-
-            Entity ep = MCPUCore.srv.getEntity(plr);
-            
-            if (ep instanceof Player)
-                creator = (Player)ep;
-        }
-        
-        if ((flags & 2) != 0)
-        {
-            UUID wrld = rd.readUUID();
-            
-            world = MCPUCore.srv.getWorld(wrld);
-        }
-        
-        deserializeComponentSpecific(rd);
-        
-        s.close();
+        if (assocblocks.isEmpty())
+            assocblocks = null;
     }
 }

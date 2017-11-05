@@ -1,29 +1,3 @@
-# The basic Gestalt:
-
-## Inheritance tree:
-```
-a <──── b    "b inherits/extends a"
-
-
-    IC <───────── EmulatedProcessor <────── LeverAwareEmulatedProcessor <────── SquareProcessor
-    ↑↑                    ↑                                                      ↑ ↑ ↑ ↑ ↑ ↑ ↑
- ╭┄┄╯┆                    ┆                                                 x86 ┄╯ ┆ ┆ ┆ ┆ ┆ ╰┄ avr
- ┆   ┆                  Sensor                                              x64 ┄┄┄╯ ┆ ┆ ┆ ╰┄ z80
- ┆ Gates                 ↑  ↑                                                   amd ┄╯ ┆ ╰┄ stack-
- ┆ ↑↑↑↑↑                 ┆  ╰┄ proximity sensor                                        ┆    based
- ┆ ┆┆┆┆╰┄ not        .........                                                      .......
- ┆ ┆┆┆╰┄ xor, nxor
- ┆ ┆┆╰┄ and, nand
- ┆ ┆╰┄ or, nor
- ┆ ╰┄ .......
- ┆
- ╰┄ Displays
-    ↑  ↑  ↑
-    ┆  ┆  ╰┄ 7segment
-    ┆  ╰┄┄┄┄ 4bit wool display 
- .......
-```
-
 ### Orientation enum:
 ```java
 public enum Orientation

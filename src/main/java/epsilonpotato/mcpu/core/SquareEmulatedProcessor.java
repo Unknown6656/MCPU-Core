@@ -1,24 +1,30 @@
 package epsilonpotato.mcpu.core;
 
-import java.io.IOException;
-
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
-import epsilonpotato.mcpu.util.BinaryReader;
-import epsilonpotato.mcpu.util.BinaryWriter;
-import epsilonpotato.mcpu.util.Triplet;
+import epsilonpotato.mcpu.util.*;
 
 
 public abstract class SquareEmulatedProcessor extends LeverAwareEmulatedProcessor
 {
     private static final long serialVersionUID = -78130561939840819L;
-    protected final int sidecount; 
+    protected int sidecount; 
 
     
-    protected abstract void deserializeProcessorState(byte[] state) throws IOException;
-    protected abstract byte[] serializeProcessorState() throws IOException;
+    protected abstract void deserializeProcessorState(final YamlConfiguration conf);
+    protected abstract void serializeProcessorState(final YamlConfiguration conf);
     
+
+    /**
+     * Do NOT use the empty constructor!! It is only there for YAML serialisation/deserialisation
+     * @deprecated Do NOT use the empty constructor!! It is only there for YAML serialisation/deserialisation
+     */
+    @Deprecated
+    public SquareEmulatedProcessor()
+    {
+         super();
+    }
     
     public SquareEmulatedProcessor(Player p, Location l, int iosidecount)
             throws Exception
@@ -71,28 +77,24 @@ public abstract class SquareEmulatedProcessor extends LeverAwareEmulatedProcesso
         
         return new Location(world, x, this.y, z);
     }
-
+    
     @Override
-    protected final void deserializeComponentSpecific(final BinaryReader rd) throws IOException
+    protected final void serializeComponentSpecific(final YamlConfiguration conf)
     {
-        ticks = rd.readLong();
-        canrun = rd.readByte() != 0;
-        
-        int length = rd.readInt();
-        byte[] state = rd.readBytes(length);
-        
-        deserializeProcessorState(state);
+        conf.set("ticks", ticks);
+        conf.set("canrun", canrun);
+        conf.set("sidecount", sidecount);
+
+        serializeProcessorState(conf.getOrCreateSection("specific"));
     }
     
     @Override
-    protected final void serializeComponentSpecific(final BinaryWriter wr) throws IOException
+    protected final void deserializeComponentSpecific(final YamlConfiguration conf)
     {
-        wr.write(ticks);
-        wr.write(canrun ? -1 : 0);
-        
-        byte[] state = serializeProcessorState();
-        
-        wr.write(state.length);
-        wr.write(state);
+        ticks = conf.getLong("ticks", 0);
+        canrun = conf.getBoolean("canrun", false);
+        sidecount = conf.getInt("sidecount", 0);
+
+        deserializeProcessorState(conf.getOrCreateSection("specific"));
     }
 }

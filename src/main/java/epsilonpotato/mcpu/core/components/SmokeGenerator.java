@@ -1,6 +1,5 @@
 package epsilonpotato.mcpu.core.components;
 
-import java.io.IOException;  
 import java.util.HashMap;
 
 import org.bukkit.Location;
@@ -10,9 +9,8 @@ import org.bukkit.entity.Player;
 import epsilonpotato.mcpu.core.ComponentOrientation;
 import epsilonpotato.mcpu.core.IntegratedCircuit;
 import epsilonpotato.mcpu.core.InvalidOrientationException;
-import epsilonpotato.mcpu.util.BinaryReader;
-import epsilonpotato.mcpu.util.BinaryWriter;
 import epsilonpotato.mcpu.util.Triplet;
+import epsilonpotato.mcpu.util.YamlConfiguration;
 
 
 public class SmokeGenerator extends IntegratedCircuit
@@ -28,6 +26,16 @@ public class SmokeGenerator extends IntegratedCircuit
         ports.put(ComponentOrientation.WEST, new int[] { 1, 0 });
         ports.put(ComponentOrientation.SOUTH, new int[] { 2, 1 });
         ports.put(ComponentOrientation.EAST, new int[] { 1, 2 });
+    }
+
+    /**
+     * Do NOT use the empty constructor!! It is only there for YAML serialisation/deserialisation
+     * @deprecated Do NOT use the empty constructor!! It is only there for YAML serialisation/deserialisation
+     */
+    @Deprecated
+    public SmokeGenerator()
+    {
+         super();
     }
     
     public SmokeGenerator(Player creator, Location loc, ComponentOrientation orient) throws InvalidOrientationException
@@ -63,12 +71,13 @@ public class SmokeGenerator extends IntegratedCircuit
     }
 
     @Override
-    protected void serializeComponentSpecific(BinaryWriter wr) throws IOException
+    protected final void serializeComponentSpecific(YamlConfiguration conf)
     {
     }
 
+    
     @Override
-    protected void deserializeComponentSpecific(BinaryReader rd) throws IOException, ClassNotFoundException
+    protected final void deserializeComponentSpecific(YamlConfiguration conf)
     {
     }
 }
