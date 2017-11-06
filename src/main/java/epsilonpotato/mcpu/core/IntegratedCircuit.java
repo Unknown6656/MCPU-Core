@@ -2,6 +2,7 @@ package epsilonpotato.mcpu.core;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.UUID;
 import java.util.function.Function;
 
 import org.bukkit.Location;
@@ -347,7 +348,12 @@ public abstract class IntegratedCircuit implements Serializable
         deserializeComponentSpecific(conf.getOrCreateSection("inner"));
         
         orientation = ComponentOrientation.fromValue((byte)conf.getInt("orient", 0));
-        creator = MCPUCore.srv.getPlayer(conf.getUUID("creator", null));
+        
+        UUID uuid = conf.getUUID("creator", null);
+        
+        if (uuid != null)
+            creator = MCPUCore.srv.getPlayer(uuid);
+        
         world = MCPUCore.srv.getWorld(conf.getUUID("world", null));
         x = conf.getInt("x", 0);
         y = conf.getInt("y", 0);

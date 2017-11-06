@@ -16,6 +16,10 @@ import epsilonpotato.mcpu.core.components.BinaryLogicGateType;
 import java.util.HashMap;
 
 
+/**
+ * An factory to create <pre>bool * bool -> bool</pre> logic gates
+ * @author Unknown6656
+ */
 public final class BinaryLogicGateFactory extends ComponentFactory<BinaryLogicGate>
 {
     private static final HashMap<ComponentOrientation, Tuple<Integer, Integer>> signloc;
@@ -31,17 +35,27 @@ public final class BinaryLogicGateFactory extends ComponentFactory<BinaryLogicGa
     }
     
     
+    /**
+     * Creates a new instance
+     * @param type Logic gate type
+     */
     public BinaryLogicGateFactory(BinaryLogicGateType type)
     {
         this.type = type;
     }
     
+    /**
+     * @see epsilonpotato.mcpu.core.ComponentFactory#getEstimatedSize(epsilonpotato.mcpu.core.ComponentOrientation)
+     */
     @Override
     public Triplet<Integer, Integer, Integer> getEstimatedSize(ComponentOrientation or)
     {
         return new Triplet<>(3, 1, 3);
     }
     
+    /**
+     * @see epsilonpotato.mcpu.core.ComponentFactory#spawnComponent(epsilonpotato.mcpu.core.BlockPlacingContext, epsilonpotato.mcpu.core.MCPUCore, org.bukkit.entity.Player, int, int, int, epsilonpotato.mcpu.core.ComponentOrientation, int)
+     */
     @Override
     @SuppressWarnings("deprecation")
     public BinaryLogicGate spawnComponent(BlockPlacingContext context, MCPUCore caller, Player p, int x, int y, int z, ComponentOrientation or, int iocount)
@@ -71,19 +85,4 @@ public final class BinaryLogicGateFactory extends ComponentFactory<BinaryLogicGa
         
         return new BinaryLogicGate(p, new Location(context.getWorld(), x, y, z), type, or);
     }
-
-
-
-
-
-    /*
-     * 
-     *      ComponentFactory.registerFactory("and", new BinaryLogicGateFactory((x, y) -> x & y, "and"));
-            ComponentFactory.registerFactory("nand", new BinaryLogicGateFactory((x, y) -> ~(x & y), "nand"));
-            ComponentFactory.registerFactory("or", new BinaryLogicGateFactory((x, y) -> x | y, "or"));
-            ComponentFactory.registerFactory("nor", new BinaryLogicGateFactory((x, y) -> ~(x | y), "nor"));
-            ComponentFactory.registerFactory("xor", new BinaryLogicGateFactory((x, y) -> x ^ y, "xor"));
-            ComponentFactory.registerFactory("nxor", new BinaryLogicGateFactory((x, y) -> ~(x ^ y), "nxor"));
-     * 
-     * */
 }
