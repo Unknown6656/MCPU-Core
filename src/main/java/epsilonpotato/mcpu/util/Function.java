@@ -3,9 +3,9 @@ package epsilonpotato.mcpu.util;
 import java.io.Serializable;
 
 /**
- * Represents a generic function of the type 'T -> U'
- * @param <T> Generic type T
- * @param <U> Generic type U
+ * Represents a generic function of the type <pre>{@link T} -> {@link U}</pre>
+ * @param <T> Generic parameter type {@link T}
+ * @param <U> Generic return type {@link U}
  * @author Unknown6656
  */
 public interface Function<T, U> extends Serializable
@@ -17,9 +17,9 @@ public interface Function<T, U> extends Serializable
     
     
     /**
-     * The function invocation
-     * @param t Parameter T
-     * @return Return value U
+     * The evaluates the function with the given parameter
+     * @param t Parameter {@link T}
+     * @return Return value {@link U}
      */
     public U eval(T t);
 }

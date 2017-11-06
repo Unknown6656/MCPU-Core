@@ -16,6 +16,17 @@ import static epsilonpotato.mcpu.core.MCPUCore.*;
  */
 public abstract class SquareEmulatedProcessorFactory<T extends SquareEmulatedProcessor> extends ComponentFactory<SquareEmulatedProcessor>
 {
+    /**
+     * Creates a new processor and spawns it into the given block placing context
+     * @param context The block placing context, into which the processor will be placed
+     * @param caller The caller plugin
+     * @param p The player which invoked the processor placing
+     * @param x The processor's desired lowest north-western corner's X-coordinates
+     * @param y The processor's desired lowest north-western corner's Y-coordinates
+     * @param z The processor's desired lowest north-western corner's Z-coordinates
+     * @param iosidecount The processor's desired I/O port count on each side
+     * @return The newly added processor
+     */
     public abstract T createProcessor(BlockPlacingContext context, MCPUCore caller, Player p, int x, int y, int z, int iosidecount);
     
     
@@ -92,17 +103,17 @@ public abstract class SquareEmulatedProcessorFactory<T extends SquareEmulatedPro
     }
 
     /**
-     * Creates a new component and spawns it into the given block placing context
-     * @param context The block placing context, into which the component will be placed
+     * Creates a new processor and spawns it into the given block placing context
+     * @param context The block placing context, into which the processor will be placed
      * @param caller The caller plugin
-     * @param archname The component processor factory's name
-     * @param p The player which invoked the component placing
+     * @param archname The processor factory's name
+     * @param p The player which invoked the processor placing
      * @param l The processor's desired lowest north-western corner's location
      * @param or The processor's desired orientation
      * @param iocount The processor's desired I/O port count
-     * @return The newly added component
-     * @throws ClassNotFoundException Thrown, if the component factory could not be found
-     * @throws InvalidOrientationException Thrown, if the component was placed along an invalid orientation
+     * @return The newly added processor
+     * @throws ClassNotFoundException Thrown, if the processor factory could not be found
+     * @throws InvalidOrientationException Thrown, if the processor was placed along an invalid orientation
      */
     public static final SquareEmulatedProcessor createProcessor(String archname, BlockPlacingContext context, MCPUCore caller, Player p, Location l, ComponentOrientation or, int iocount)
             throws ClassNotFoundException, InvalidOrientationException

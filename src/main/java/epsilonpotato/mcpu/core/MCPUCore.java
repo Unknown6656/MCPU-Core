@@ -77,6 +77,12 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
     
     
     /**
+     * Returns the 'about'- or version-information of the plugin
+     * @return About/version text
+     */
+    public abstract String getAboutText();
+    
+    /**
      * Abstract method which registers more integrated circuits using the method
      * {@link epsilonpotato.mcpu.core.ComponentFactory#registerFactory(String, epsilonpotato.mcpu.core.ComponentFactory)}.
      */
@@ -622,6 +628,18 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
                         
                         sender.sendMessage("[" + i + "]: (" + ic.getClass().getSimpleName() + ") " + ic.getState());
                     });
+                    break;
+                case ABOUT:
+                    StringBuilder sb = new StringBuilder();
+
+                    sb.append(ChatColor.GOLD + "--------------------- ABOUT ---------------------\n");
+                    sb.append(ChatColor.AQUA + "  MCPU-Core:\n");
+                    sb.append(ChatColor.WHITE + "        Copyright (c) 2017 Unknown6656 and Zedly\n");
+                    sb.append(ChatColor.AQUA + "  " + getName() + ":\n");
+                    sb.append(ChatColor.WHITE + getAboutText());
+                    
+                    print(sender, ChatColor.WHITE, sb.toString());
+                    
                     break;
                 default:
                     if (!onUnprocessedCommand(sender, command, label, args))

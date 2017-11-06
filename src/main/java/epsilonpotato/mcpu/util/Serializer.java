@@ -12,12 +12,22 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
 
+/**
+ * A class containing serialisation helper methods
+ * @author Unknown6656
+ */
 public final class Serializer
 {
     private Serializer()
     {
     }
     
+    /**
+     * Serialises the given object to a byte array 
+     * @param obj Object to be serialised
+     * @return Byte array
+     * @throws IOException Thrown if an I/O error occurs while writing stream header
+     */
     public static byte[] serialize(Serializable obj) throws IOException
     {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -44,6 +54,14 @@ public final class Serializer
         }
     }
     
+    /**
+     * Deserialises an object from the given byte array
+     * @param <T> Generic output type
+     * @param data Byte array
+     * @return Deserialised object
+     * @throws ClassNotFoundException Thrown if the class of a serialised object cannot be found
+     * @throws IOException Thrown if an I/O error occurs while reading stream header
+     */
     @SuppressWarnings("unchecked")
     public static <T extends Serializable> T deserialize(byte[] data) throws ClassNotFoundException, IOException
     {
@@ -70,16 +88,28 @@ public final class Serializer
         }
     }
 
-    public static void getBinaryReader(byte[] data, ErrorConsumer<BinaryReader, IOException> callback) throws IOException
+    /**
+     * Invokes the given callback function with a binary reader created from the given byte array
+     * @param data Byte array
+     * @param callback Callback function
+     * @throws IOException Thrown if any I/O error occurs
+     */
+    public static void getBinaryReader(byte[] data, ErrorAction<BinaryReader, IOException> callback) throws IOException
     {
-        callback.accept(new BinaryReader(data));
+        callback.eval(new BinaryReader(data));
     }
     
-    public static byte[] fromBinaryWriter(ErrorConsumer<BinaryWriter, IOException> callback) throws IOException
+    /**
+     * Invokes the given callback function with a binary writer and returns the created byte array
+     * @param callback Callback function
+     * @return Created byte array
+     * @throws IOException Thrown if any I/O error occurs
+     */
+    public static byte[] fromBinaryWriter(ErrorAction<BinaryWriter, IOException> callback) throws IOException
     {
         BinaryWriter wr = new BinaryWriter();
         
-        callback.accept(wr);
+        callback.eval(wr);
         
         return wr.toByteArray();
     }

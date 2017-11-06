@@ -12,22 +12,77 @@ import java.util.Set;
  */
 public enum MCPUCoreCommand implements Serializable
 {
+    /**
+     * Command to display the help/usage page
+     */
     HELP("?", "help"),
+    /**
+     * Command to display the about/version page
+     */
+    ABOUT("about", "version"),
+    /**
+     * Command to add a new component
+     */
     ADD("add"),
+    /**
+     * Command to add a new processor
+     */
     ADD_PROCESSOR("addp", "addproc", "addprocessor"),
+    /**
+     * Command to delete a component
+     */
     DELETE("delete", "remove"),
+    /**
+     * Command to load a book as code into a processor
+     */
     LOAD_BOOK("loadb", "loadbook"),
+    /**
+     * Command to load an URI into a processor
+     */
     LOAD_URI("loadu", "loaduri"),
-    START("start"),
+    /**
+     * Command to start a processor
+     */
+    START("start", "run"),
+    /**
+     * Command to stop a processor
+     */
     STOP("stop", "halt"),
+    /**
+     * Command to reset a processor
+     */
     RESET("reset"),
+    /**
+     * Command to force the execution of the next processor instruction
+     */
     NEXT("next"),
+    /**
+     * Command to show the state of a component
+     */
     STATE("state"),
+    /**
+     * Command to list all component's states
+     */
     LIST("list"),
+    /**
+     * Command to list all architectures/component types
+     */
     ARCH("arch", "architectures", "components"),
+    /**
+     * Command to unregister a component
+     */
     UNREGISTER("ureg", "unreg", "unregister"),
+    /**
+     * Command to give a component register wand to the player
+     */
     REGISTER("reg", "register"),
+    /**
+     * Command to give a processor register wand to the player
+     */
     REGISTER_PROCESSOR("regp", "regproc", "regprocessor"),
+    /**
+     * Unknown command
+     */
     UNKNOWN();
     
     
