@@ -243,10 +243,17 @@ public final class YamlConfiguration implements Map<String, Object>
             return defaultValue;
         else if (uuid instanceof UUID)
             return (UUID)uuid;
-        else if (uuid instanceof String)
-            return UUID.fromString((String)uuid);
         else
-            return UUID.fromString(uuid.toString());
+            try
+            {
+                System.out.println(uuid.toString());
+                
+                return UUID.fromString(uuid instanceof String ? (String)uuid : uuid.toString());
+            }
+            catch (Exception e)
+            {
+                return defaultValue;
+            }
     }
     
     /**

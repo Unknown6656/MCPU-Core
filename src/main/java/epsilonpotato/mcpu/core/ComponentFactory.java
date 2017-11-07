@@ -9,6 +9,7 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 
 import epsilonpotato.mcpu.util.BlockHelper;
+import epsilonpotato.mcpu.util.GenericHelper;
 import epsilonpotato.mcpu.util.Triplet;
 
 
@@ -20,6 +21,10 @@ import epsilonpotato.mcpu.util.Triplet;
 public abstract class ComponentFactory<T extends IntegratedCircuit>
 {
     private static final HashMap<String, ComponentFactory<IntegratedCircuit>> register = new HashMap<>();
+    /**
+     * The component type informations, of which the current factory instance creates components
+     */
+    protected final Class<T> componentType = GenericHelper.getGenericClass();
     
     
     /**
@@ -37,6 +42,8 @@ public abstract class ComponentFactory<T extends IntegratedCircuit>
      */
     protected abstract T spawnComponent(BlockPlacingContext context, MCPUCore caller, Player p, int x, int y, int z, ComponentOrientation or, int iocount) throws InvalidOrientationException;
     
+
+
     /**
      * Returns the component's estimated size in the given orientation (or 'null' if unknown)
      * @param or Component orientation
@@ -130,6 +137,18 @@ public abstract class ComponentFactory<T extends IntegratedCircuit>
     }
     
     /**
+     * Creates all pins for the given integrated circuit
+     * @param <T> Integrated circuit type
+     * @param context Block placing context
+     * @param t Integrated circuit instance 
+     */
+    protected static final <T extends IntegratedCircuit> void createPins(BlockPlacingContext context, T t)
+    {
+        for (int i = 0, c = t.getIOCount(); i < c; ++i)
+            context.addBlock(t.getIOLocation(i), Material.IRON_BLOCK);
+    }
+    
+    /**
      * Returns the factory registered with the given name
      * @param name Factory name
      * @return Component factory
@@ -144,6 +163,35 @@ public abstract class ComponentFactory<T extends IntegratedCircuit>
             throw new ClassNotFoundException("The component factory '" + name + "' could not be found.");
     }
 
+    /**
+     * Returns the component factory associated with the given generic type {@link U}
+     * @param <U> Generic type parameter (must inherit {@link IntegratedCircuit}
+     * @return Component factory
+     */
+    public static final <U extends IntegratedCircuit> ComponentFactory<U> getFactory()
+    {
+        Class<U> typeU = GenericHelper.getGenericClass();
+        
+        return getFactory(typeU);
+    }
+
+    /**
+     * Returns the component factory associated with the given generic type {@link U}
+     * @param <U> Generic type parameter (must inherit {@link IntegratedCircuit}
+     * @param type Generic type information
+     * @return Component factory
+     */
+    @SuppressWarnings("unchecked")
+    public static final <U extends IntegratedCircuit> ComponentFactory<U> getFactory(Class<U> type)
+    {
+        for (ComponentFactory<IntegratedCircuit> fac : register.values())
+            if (fac != null)
+                if (fac.componentType.isAssignableFrom(type))
+                    return (ComponentFactory<U>)fac;
+        
+        return null;
+    }
+    
     /**
      * Returns a list of all registered factory names
      * @return List of factory names

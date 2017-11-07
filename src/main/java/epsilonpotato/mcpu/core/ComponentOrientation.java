@@ -55,12 +55,21 @@ public enum ComponentOrientation
      * Returns whether the component is orientated along one of the following orientations:
      * {@link ComponentOrientation#NORTH}, {@link ComponentOrientation#SOUTH} or
      * {@link ComponentOrientation#UPRIGHT_NORTH_SOUTH}
-     * 
      * @return
      */
     public boolean isNorthSouth()
     {
         return (this == ComponentOrientation.NORTH) || (this == ComponentOrientation.SOUTH) || (this == ComponentOrientation.UPRIGHT_NORTH_SOUTH);
+    }
+    
+    /**
+     * Returns whether the component is in an upright position
+     * ({@link ComponentOrientation#UPRIGHT_NORTH_SOUTH} or {@link ComponentOrientation#UPRIGHT_EAST_WEST})
+     * @return
+     */
+    public boolean isUpright()
+    {
+        return (this == UPRIGHT_EAST_WEST) || (this == ComponentOrientation.UPRIGHT_EAST_WEST);
     }
     
     private ComponentOrientation(byte value)

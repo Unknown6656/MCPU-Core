@@ -16,7 +16,7 @@ import java.util.HashMap;
 
 
 /**
- * An factory to create <pre>bool * bool -> bool * bool</pre> logic gates
+ * An factory to create <pre>[0..15] x [0..15] -> [0..15] x [0..15]</pre> logic gates
  * @author Unknown6656
  */
 public final class LogicGate2x2Factory extends ComponentFactory<LogicGate2x2>

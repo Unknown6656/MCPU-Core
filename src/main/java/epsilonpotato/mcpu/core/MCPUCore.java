@@ -100,6 +100,7 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
      */
     public abstract boolean onUnprocessedCommand(CommandSender sender, Command command, String label, String[] args);
     
+    
     /**
      * Creates a new instance and passes a hash map of additional usage options
      * and commands (can be null)
@@ -152,6 +153,7 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
             ComponentFactory.registerFactory("demux8", new Demultiplexer1to8Factory());
             ComponentFactory.registerFactory("disp16", new WoolDisplay16x16Factory());
             ComponentFactory.registerFactory("disp32", new WoolDisplay32x32Factory());
+            ComponentFactory.registerFactory("adc", new AnalogDigitalConverterFactory());
             ComponentFactory.registerFactory("and", new BinaryLogicGateFactory(BinaryLogicGateType.AND));
             ComponentFactory.registerFactory("nand", new BinaryLogicGateFactory(BinaryLogicGateType.NAND));
             ComponentFactory.registerFactory("or", new BinaryLogicGateFactory(BinaryLogicGateType.OR));
@@ -371,9 +373,7 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
     {
         String[] tokens = event.getBuffer().split("\\s+");
         
-        System.out.println(String.join("|", tokens));
-        
-        List<String> compl = onTabComplete(event.getSender(), tokens[0], tokens);
+        List<String> compl = onTabComplete(event.getSender(), tokens);
         
         compl = compl == null ? new LinkedList<>() : compl;
         compl.addAll(event.getCompletions());
@@ -390,16 +390,16 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
      * @param args Command arguments
      * @return Command completition list
      */
-    public final List<String> onTabComplete(CommandSender sender, String cmd, String[] args)
+    public final List<String> onTabComplete(CommandSender sender, String[] args)
     {
-        if (cmd.equalsIgnoreCase("/mcpu"))
+        if (args[0].equalsIgnoreCase("/mcpu"))
         {
             LinkedList<String> list = new LinkedList<>();
             
-            if (args.length == 0)
+            if (args.length == 1)
                 list.addAll(MCPUCoreCommand.getAllCommands());
-            else if (args.length == 1)
-                switch (MCPUCoreCommand.getByValue(args[0]))
+            else if (args.length == 2)
+                switch (MCPUCoreCommand.getByValue(args[1]))
                 {
                     case ADD:
                     case ADD_PROCESSOR:
@@ -408,8 +408,7 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
                         list.addAll(ComponentFactory.getRegisteredFactories());
                         
                         break;
-                    }
-                    case NEXT:
+                    }                    case NEXT:
                     case RESET:
                     case START:
                     case STOP:
@@ -747,6 +746,7 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
     
     private void addComponent(CommandSender sender, String[] args, boolean isproc)
     {
+        ComponentOrientation or;
         Player player = null;
         int cpusize = 0;
         String icname;
@@ -758,6 +758,7 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
             {
                 player = (Player)sender;
                 loc = player.getLocation();
+                or = getDirection(loc);
                 icname = args[0];
                 
                 if (args.length > 1)
@@ -797,16 +798,16 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
         
         try
         {
-            ComponentOrientation orient = ComponentOrientation.NORTH; // <---- TODO : change orientation depending on the player's orientation
+            or = ComponentOrientation.NORTH; // <---- TODO : change orientation depending on the player's orientation
             
             ComponentFactory<IntegratedCircuit> fac = ComponentFactory.getFactoryByName((isproc ? "processor.emulated." : "") + icname);
-            Triplet<Integer, Integer, Integer> size = fac.getEstimatedSize(orient);
+            Triplet<Integer, Integer, Integer> size = fac.getEstimatedSize(or);
             int i = checkForCollisions(size, x, y, z);
             
             if (i != -1)
                 error(sender, "The new processor/circuit cannot be placed here. It would intersect the existing component no. " + i + ".");
             else
-                spawnComponent(context, fac, player, x, y, z, orient, cpusize);
+                spawnComponent(context, fac, player, x, y, z, or, cpusize);
         }
         catch (InvalidOrientationException o)
         {
@@ -979,6 +980,8 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
                 {
                     e.printStackTrace();
                 }
+        
+        System.out.println("loaded " + circuits.size() + " components.");
     }
     
     private void getIC(final String[] argv, final int ndx, final CommandSender sender, Action<IntegratedCircuit> action)
@@ -1101,5 +1104,33 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
     public static void error(CommandSender s, String m)
     {
         print(s, ChatColor.RED, m);
+    }
+
+    private static ComponentOrientation getDirection(Location loc)
+    {
+        double yaw = (loc.getYaw() - 90) % 360;
+        double pitch = -loc.getPitch();
+        
+        if (yaw < 0)
+            yaw += 360.0;
+        
+        return getDirection(yaw, pitch < 0 ? 0 : pitch);
+    }
+    
+    private static ComponentOrientation getDirection(double yaw, double pitch)
+    {
+        boolean upright = pitch > 45;
+        
+        yaw += 45;
+        yaw %= 360;
+        
+        if (yaw < 90)
+            return upright ? ComponentOrientation.UPRIGHT_NORTH_SOUTH : ComponentOrientation.NORTH;
+        else if (yaw < 180)
+            return upright ? ComponentOrientation.UPRIGHT_EAST_WEST : ComponentOrientation.EAST;
+        else if (yaw < 270)
+            return upright ? ComponentOrientation.UPRIGHT_NORTH_SOUTH : ComponentOrientation.SOUTH;
+        else
+            return upright ? ComponentOrientation.UPRIGHT_EAST_WEST : ComponentOrientation.WEST;
     }
 }
