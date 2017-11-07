@@ -404,11 +404,13 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
                     case ADD:
                     case ADD_PROCESSOR:
                     case REGISTER:
+                    case REGISTER_PROCESSOR:
                     {
                         list.addAll(ComponentFactory.getRegisteredFactories());
                         
                         break;
-                    }                    case NEXT:
+                    }
+                    case NEXT:
                     case RESET:
                     case START:
                     case STOP:
@@ -430,8 +432,14 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
                         
                         break;
                     }
-                    default:
+                    case ABOUT:
+                    case ARCH:
+                    case HELP:
+                    case LIST:
                         return null;
+                    case UNKNOWN:
+                    default:
+                        return null; // onTabComplete(sender, new String[] { args[0] }); // (?)
                 }
             
             return list;
