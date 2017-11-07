@@ -1,18 +1,28 @@
-
 package epsilonpotato.mcpu.util;
-
 
 import org.bukkit.block.Block;
 
 
+/**
+ * A class containing block utility methods 
+ * @author Unknown6656
+ */
 public final class BlockHelper
 {
     private BlockHelper()
     {   
     }
     
+    /**
+     * Returns whether the given block is opaque
+     * @param block Block
+     * @return Opaqueness check result
+     */
     public static final boolean isOpaque(Block block)
     {
+        if (block == null)
+            return false;
+        
         switch (block.getType())
         {
             case ACACIA_STAIRS:

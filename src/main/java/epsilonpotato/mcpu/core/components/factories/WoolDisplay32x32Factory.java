@@ -8,8 +8,15 @@ import epsilonpotato.mcpu.core.*;
 import epsilonpotato.mcpu.util.*;
 import epsilonpotato.mcpu.core.components.WoolDisplay32x32;
 
+/**
+ * An factory to create 32x32 Wool displays
+ * @author Unknown6656
+ */
 public final class WoolDisplay32x32Factory extends ComponentFactory<WoolDisplay32x32>
 {
+    /**
+     * @see epsilonpotato.mcpu.core.ComponentFactory#spawnComponent(epsilonpotato.mcpu.core.BlockPlacingContext, epsilonpotato.mcpu.core.MCPUCore, org.bukkit.entity.Player, int, int, int, epsilonpotato.mcpu.core.ComponentOrientation, int)
+     */
     @Override
     public WoolDisplay32x32 spawnComponent(BlockPlacingContext context, MCPUCore caller, Player p, int x, int y, int z, ComponentOrientation or, int iocount) throws InvalidOrientationException
     {
@@ -32,6 +39,9 @@ public final class WoolDisplay32x32Factory extends ComponentFactory<WoolDisplay3
         return wdisp;
     }
 
+    /**
+     * @see epsilonpotato.mcpu.core.ComponentFactory#getEstimatedSize(epsilonpotato.mcpu.core.ComponentOrientation)
+     */
     @Override
     public Triplet<Integer, Integer, Integer> getEstimatedSize(ComponentOrientation or)
     {

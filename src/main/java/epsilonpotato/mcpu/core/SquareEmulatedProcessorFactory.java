@@ -9,11 +9,30 @@ import org.bukkit.entity.Player;
 import static epsilonpotato.mcpu.core.MCPUCore.*;
 
 
+/**
+ * Represents an abstract square emulated processor factory
+ * @param <T> Generic processor type
+ * @author Unknown6656
+ */
 public abstract class SquareEmulatedProcessorFactory<T extends SquareEmulatedProcessor> extends ComponentFactory<SquareEmulatedProcessor>
 {
+    /**
+     * Creates a new processor and spawns it into the given block placing context
+     * @param context The block placing context, into which the processor will be placed
+     * @param caller The caller plugin
+     * @param p The player which invoked the processor placing
+     * @param x The processor's desired lowest north-western corner's X-coordinates
+     * @param y The processor's desired lowest north-western corner's Y-coordinates
+     * @param z The processor's desired lowest north-western corner's Z-coordinates
+     * @param iosidecount The processor's desired I/O port count on each side
+     * @return The newly added processor
+     */
     public abstract T createProcessor(BlockPlacingContext context, MCPUCore caller, Player p, int x, int y, int z, int iosidecount);
     
     
+    /**
+     * @see epsilonpotato.mcpu.core.ComponentFactory#spawnComponent(epsilonpotato.mcpu.core.BlockPlacingContext, epsilonpotato.mcpu.core.MCPUCore, org.bukkit.entity.Player, int, int, int, epsilonpotato.mcpu.core.ComponentOrientation, int)
+     */
     @Override
     @SuppressWarnings("deprecation")
     public final SquareEmulatedProcessor spawnComponent(BlockPlacingContext context, MCPUCore caller, Player p, int x, int y, int z, ComponentOrientation or, int iosidecount)
@@ -71,11 +90,31 @@ public abstract class SquareEmulatedProcessorFactory<T extends SquareEmulatedPro
         return createProcessor(context, caller, p, x - 1, y, z - 1, iosidecount);
     }
 
+    /**
+     * Registers the given processor factory using the given name
+     * @param <T> Generic processor factory type
+     * @param archname Processor architecture name
+     * @param fac Factory instance
+     * @throws Exception Thrown if a factory with the same name already exists
+     */
     public static final <T extends SquareEmulatedProcessor> void registerFactory(String archname, SquareEmulatedProcessorFactory<T> fac) throws Exception
     {
         ComponentFactory.registerFactory("processor.emulated." + archname, fac);
     }
-    
+
+    /**
+     * Creates a new processor and spawns it into the given block placing context
+     * @param context The block placing context, into which the processor will be placed
+     * @param caller The caller plugin
+     * @param archname The processor factory's name
+     * @param p The player which invoked the processor placing
+     * @param l The processor's desired lowest north-western corner's location
+     * @param or The processor's desired orientation
+     * @param iocount The processor's desired I/O port count
+     * @return The newly added processor
+     * @throws ClassNotFoundException Thrown, if the processor factory could not be found
+     * @throws InvalidOrientationException Thrown, if the processor was placed along an invalid orientation
+     */
     public static final SquareEmulatedProcessor createProcessor(String archname, BlockPlacingContext context, MCPUCore caller, Player p, Location l, ComponentOrientation or, int iocount)
             throws ClassNotFoundException, InvalidOrientationException
     {

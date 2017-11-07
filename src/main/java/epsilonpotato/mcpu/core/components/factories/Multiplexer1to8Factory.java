@@ -12,8 +12,16 @@ import epsilonpotato.mcpu.core.MCPUCore;
 import epsilonpotato.mcpu.core.components.Multiplexer1to8;
 import epsilonpotato.mcpu.util.Triplet;
 
+
+/**
+ * An factory to create 1:8 multiplexer
+ * @author Unknown6656
+ */
 public final class Multiplexer1to8Factory extends ComponentFactory<Multiplexer1to8>
 {
+    /**
+     * @see epsilonpotato.mcpu.core.ComponentFactory#spawnComponent(epsilonpotato.mcpu.core.BlockPlacingContext, epsilonpotato.mcpu.core.MCPUCore, org.bukkit.entity.Player, int, int, int, epsilonpotato.mcpu.core.ComponentOrientation, int)
+     */
     @Override
     public Multiplexer1to8 spawnComponent(BlockPlacingContext context, MCPUCore caller, Player p, int x, int y, int z, ComponentOrientation or, int iocount) throws InvalidOrientationException
     {
@@ -34,6 +42,9 @@ public final class Multiplexer1to8Factory extends ComponentFactory<Multiplexer1t
         return mux;
     }
     
+    /**
+     * @see epsilonpotato.mcpu.core.ComponentFactory#getEstimatedSize(epsilonpotato.mcpu.core.ComponentOrientation)
+     */
     public Triplet<Integer, Integer, Integer> getEstimatedSize(ComponentOrientation or)
     {
         return new Triplet<>(7, 1, 16);

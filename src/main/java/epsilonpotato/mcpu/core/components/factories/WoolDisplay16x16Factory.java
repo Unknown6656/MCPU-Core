@@ -12,8 +12,15 @@ import epsilonpotato.mcpu.core.MCPUCore;
 import epsilonpotato.mcpu.core.components.WoolDisplay16x16;
 import epsilonpotato.mcpu.util.Triplet;
 
+/**
+ * An factory to create 16x16 Wool displays
+ * @author Unknown6656
+ */
 public final class WoolDisplay16x16Factory extends ComponentFactory<WoolDisplay16x16>
 {
+    /**
+     * @see epsilonpotato.mcpu.core.ComponentFactory#spawnComponent(epsilonpotato.mcpu.core.BlockPlacingContext, epsilonpotato.mcpu.core.MCPUCore, org.bukkit.entity.Player, int, int, int, epsilonpotato.mcpu.core.ComponentOrientation, int)
+     */
     @Override
     public WoolDisplay16x16 spawnComponent(BlockPlacingContext context, MCPUCore caller, Player p, int x, int y, int z, ComponentOrientation or, int iocount) throws InvalidOrientationException
     {
@@ -40,6 +47,9 @@ public final class WoolDisplay16x16Factory extends ComponentFactory<WoolDisplay1
         return wdisp;
     }
 
+    /**
+     * @see epsilonpotato.mcpu.core.ComponentFactory#getEstimatedSize(epsilonpotato.mcpu.core.ComponentOrientation)
+     */
     @Override
     public Triplet<Integer, Integer, Integer> getEstimatedSize(ComponentOrientation or)
     {
