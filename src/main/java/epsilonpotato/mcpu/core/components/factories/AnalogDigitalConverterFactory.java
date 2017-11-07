@@ -39,4 +39,14 @@ public final class AnalogDigitalConverterFactory extends ComponentFactory<Analog
     {
         return new Triplet<>(5, 1, 7);
     }
+
+   
+    /**
+     * @see epsilonpotato.mcpu.core.ComponentFactory#getCircuitType()
+     */
+    @Override
+    protected Class<AnalogDigitalConverter> getCircuitType()
+    {
+        return AnalogDigitalConverter.class;
+    }
 }

@@ -216,6 +216,8 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
         {
             if (c == null)
                 return;
+            else if (!c.isCompletelyLoaded())
+                return;
             
             // UPDATE INPUT IO
             for (int io = 0, cnt = c.getIOCount(); io < cnt; ++io)

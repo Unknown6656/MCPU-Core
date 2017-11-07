@@ -89,4 +89,13 @@ public final class LogicGate2x2Factory extends ComponentFactory<LogicGate2x2>
         
         return new LogicGate2x2(p, new Location(context.getWorld(), x, y, z), type, or);
     }
+    
+    /**
+     * @see epsilonpotato.mcpu.core.ComponentFactory#getCircuitType()
+     */
+    @Override
+    protected Class<LogicGate2x2> getCircuitType()
+    {
+        return LogicGate2x2.class;
+    }
 }

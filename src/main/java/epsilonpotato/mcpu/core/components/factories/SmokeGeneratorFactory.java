@@ -42,4 +42,13 @@ public final class SmokeGeneratorFactory extends ComponentFactory<SmokeGenerator
         
         return gen;
     }
+    
+    /**
+     * @see epsilonpotato.mcpu.core.ComponentFactory#getCircuitType()
+     */
+    @Override
+    protected Class<SmokeGenerator> getCircuitType()
+    {
+        return SmokeGenerator.class;
+    }
 }

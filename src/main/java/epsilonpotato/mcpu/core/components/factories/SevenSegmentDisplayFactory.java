@@ -49,4 +49,13 @@ public final class SevenSegmentDisplayFactory extends ComponentFactory<SevenSegm
     {
         return new Triplet<>(9, 1, 12);
     }
+    
+    /**
+     * @see epsilonpotato.mcpu.core.ComponentFactory#getCircuitType()
+     */
+    @Override
+    protected Class<SevenSegmentDisplay> getCircuitType()
+    {
+        return SevenSegmentDisplay.class;
+    }
 }

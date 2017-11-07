@@ -294,6 +294,30 @@ public abstract class IntegratedCircuit implements Serializable
     }
     
     /**
+     * Returns whether the current component is completely loaded (meaning all its chunks are loaded)
+     * @return True := loaded, false := unloaded/partially loaded
+     */
+    public boolean isCompletelyLoaded()
+    {
+        if (assocblocks != null)
+        {
+            for (Triplet<Integer, Integer, Integer> pos : assocblocks)
+                if (!world.getBlockAt(pos.x, pos.y, pos.z).getChunk().isLoaded())
+                    return false;
+        }
+        else
+        {
+            for (int k = 0; k < xsize; ++k)
+                for (int l = 0; l < ysize; ++l)
+                    for (int m = 0; m < zsize; ++m)
+                        if (!world.getBlockAt(x + k, y + l, z + m).getChunk().isLoaded())
+                            return false;
+        }
+        
+        return true;
+    }
+    
+    /**
      * Serialises the current component into the given YAML configuration
      * @param conf YAML configuration
      */

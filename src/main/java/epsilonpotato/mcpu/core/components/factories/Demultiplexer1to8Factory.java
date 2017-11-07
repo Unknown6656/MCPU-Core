@@ -48,4 +48,13 @@ public final class Demultiplexer1to8Factory extends ComponentFactory<Demultiplex
     {
         return new Triplet<>(7, 1, 16);
     }
+    
+    /**
+     * @see epsilonpotato.mcpu.core.ComponentFactory#getCircuitType()
+     */
+    @Override
+    protected Class<Demultiplexer1to8> getCircuitType()
+    {
+        return Demultiplexer1to8.class;
+    }
 }

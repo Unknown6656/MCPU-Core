@@ -49,4 +49,13 @@ public final class Multiplexer1to8Factory extends ComponentFactory<Multiplexer1t
     {
         return new Triplet<>(7, 1, 16);
     }
+    
+    /**
+     * @see epsilonpotato.mcpu.core.ComponentFactory#getCircuitType()
+     */
+    @Override
+    protected Class<Multiplexer1to8> getCircuitType()
+    {
+        return Multiplexer1to8.class;
+    }
 }

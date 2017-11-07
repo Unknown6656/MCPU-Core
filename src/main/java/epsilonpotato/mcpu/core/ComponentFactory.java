@@ -9,7 +9,6 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 
 import epsilonpotato.mcpu.util.BlockHelper;
-import epsilonpotato.mcpu.util.GenericHelper;
 import epsilonpotato.mcpu.util.Triplet;
 
 
@@ -21,12 +20,12 @@ import epsilonpotato.mcpu.util.Triplet;
 public abstract class ComponentFactory<T extends IntegratedCircuit>
 {
     private static final HashMap<String, ComponentFactory<IntegratedCircuit>> register = new HashMap<>();
+    
     /**
      * The component type informations, of which the current factory instance creates components
+     * @return Component type information
      */
-    protected final Class<T> componentType = GenericHelper.getGenericClass();
-    
-    
+    protected abstract Class<T> getCircuitType();
     /**
      * Spawns a new component (use {@link ComponentFactory#spawnComponent(BlockPlacingContext, MCPUCore, Player, int, int, int, ComponentOrientation, int)} instead)
      * @param context The block placing context, into which the component will be placed
@@ -166,18 +165,6 @@ public abstract class ComponentFactory<T extends IntegratedCircuit>
     /**
      * Returns the component factory associated with the given generic type {@link U}
      * @param <U> Generic type parameter (must inherit {@link IntegratedCircuit}
-     * @return Component factory
-     */
-    public static final <U extends IntegratedCircuit> ComponentFactory<U> getFactory()
-    {
-        Class<U> typeU = GenericHelper.getGenericClass();
-        
-        return getFactory(typeU);
-    }
-
-    /**
-     * Returns the component factory associated with the given generic type {@link U}
-     * @param <U> Generic type parameter (must inherit {@link IntegratedCircuit}
      * @param type Generic type information
      * @return Component factory
      */
@@ -186,7 +173,7 @@ public abstract class ComponentFactory<T extends IntegratedCircuit>
     {
         for (ComponentFactory<IntegratedCircuit> fac : register.values())
             if (fac != null)
-                if (fac.componentType.isAssignableFrom(type))
+                if (fac.getCircuitType().isAssignableFrom(type))
                     return (ComponentFactory<U>)fac;
         
         return null;
