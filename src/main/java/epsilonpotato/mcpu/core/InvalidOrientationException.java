@@ -1,5 +1,9 @@
 package epsilonpotato.mcpu.core;
 
+/**
+ * Represents an exception thrown if a component has been placed along an invalid orientation
+ * @author Unknown6656
+ */
 public final class InvalidOrientationException extends Exception
 {
     private static final long serialVersionUID = 7623949597745140278L; // the fuck? why does java need this? w/ever....

@@ -12,8 +12,15 @@ import epsilonpotato.mcpu.core.components.SevenSegmentDisplay;
 import epsilonpotato.mcpu.util.Triplet;
 
 
+/**
+ * An factory to create seven segment displays
+ * @author Unknown6656
+ */
 public final class SevenSegmentDisplayFactory extends ComponentFactory<SevenSegmentDisplay>
 {
+    /**
+     * @see epsilonpotato.mcpu.core.ComponentFactory#spawnComponent(epsilonpotato.mcpu.core.BlockPlacingContext, epsilonpotato.mcpu.core.MCPUCore, org.bukkit.entity.Player, int, int, int, epsilonpotato.mcpu.core.ComponentOrientation, int)
+     */
     @Override
     public SevenSegmentDisplay spawnComponent(BlockPlacingContext context, MCPUCore caller, Player p, int x, int y, int z, ComponentOrientation or, int iocount)
             throws InvalidOrientationException
@@ -34,6 +41,9 @@ public final class SevenSegmentDisplayFactory extends ComponentFactory<SevenSegm
         return new SevenSegmentDisplay(p, context.getWorld(), x, y, z);
     }
 
+    /**
+     * @see epsilonpotato.mcpu.core.ComponentFactory#getEstimatedSize(epsilonpotato.mcpu.core.ComponentOrientation)
+     */
     @Override
     public Triplet<Integer, Integer, Integer> getEstimatedSize(ComponentOrientation or)
     {

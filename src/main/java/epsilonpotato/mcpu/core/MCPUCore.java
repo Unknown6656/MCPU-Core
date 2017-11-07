@@ -1,3 +1,4 @@
+
 package epsilonpotato.mcpu.core;
 
 
@@ -76,9 +77,14 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
     
     
     /**
+     * Returns the 'about'- or version-information of the plugin
+     * @return About/version text
+     */
+    public abstract String getAboutText();
+    
+    /**
      * Abstract method which registers more integrated circuits using the method
-     * {@see epsilonpotato.mcpu.core.ComponentFactory#registerFactory(String,
-     * epsilonpotato.mcpu.core.ComponentFactory)}.
+     * {@link epsilonpotato.mcpu.core.ComponentFactory#registerFactory(String, epsilonpotato.mcpu.core.ComponentFactory)}.
      */
     public abstract void registerIntegratedCircuits();
     
@@ -93,6 +99,7 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
      * handled or not
      */
     public abstract boolean onUnprocessedCommand(CommandSender sender, Command command, String label, String[] args);
+    
     
     /**
      * Creates a new instance and passes a hash map of additional usage options
@@ -146,6 +153,7 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
             ComponentFactory.registerFactory("demux8", new Demultiplexer1to8Factory());
             ComponentFactory.registerFactory("disp16", new WoolDisplay16x16Factory());
             ComponentFactory.registerFactory("disp32", new WoolDisplay32x32Factory());
+            ComponentFactory.registerFactory("adc", new AnalogDigitalConverterFactory());
             ComponentFactory.registerFactory("and", new BinaryLogicGateFactory(BinaryLogicGateType.AND));
             ComponentFactory.registerFactory("nand", new BinaryLogicGateFactory(BinaryLogicGateType.NAND));
             ComponentFactory.registerFactory("or", new BinaryLogicGateFactory(BinaryLogicGateType.OR));
@@ -193,7 +201,7 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
         for (IntegratedCircuit ic : circuits.values())
             if (ic instanceof EmulatedProcessor)
                 ((EmulatedProcessor)ic).stop();
-           
+            
         onWorldSaveEvent(null);
     }
     
@@ -358,19 +366,14 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
      * Event handler which handles when a player presses the `TAB`-key in the
      * console halfway through typing a command
      * 
-     * @param sender The sender (player or console user)
-     * @param cmd The command
-     * @param args Command arguments
-     * @return Command completition list
+     * @param event Event data
      */
     @EventHandler
     public final void onTabCompleteEvent(TabCompleteEvent event)
     {
         String[] tokens = event.getBuffer().split("\\s+");
         
-        System.out.println(String.join("|", tokens));
-        
-        List<String> compl = onTabComplete(event.getSender(), tokens[0], tokens);
+        List<String> compl = onTabComplete(event.getSender(), tokens);
         
         compl = compl == null ? new LinkedList<>() : compl;
         compl.addAll(event.getCompletions());
@@ -378,16 +381,25 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
         event.setCompletions(compl);
     }
     
-    public final List<String> onTabComplete(CommandSender sender, String cmd, String[] args)
+    /**
+     * Event handler which handles when a player presses the `TAB`-key in the
+     * console halfway through typing a command
+     * 
+     * @param sender The sender (player or console user)
+     * @param cmd The command
+     * @param args Command arguments
+     * @return Command completition list
+     */
+    public final List<String> onTabComplete(CommandSender sender, String[] args)
     {
-        if (cmd.equalsIgnoreCase("/mcpu"))
+        if (args[0].equalsIgnoreCase("/mcpu"))
         {
             LinkedList<String> list = new LinkedList<>();
             
-            if (args.length == 0)
+            if (args.length == 1)
                 list.addAll(MCPUCoreCommand.getAllCommands());
-            else if (args.length == 1)
-                switch (MCPUCoreCommand.getByValue(args[0]))
+            else if (args.length == 2)
+                switch (MCPUCoreCommand.getByValue(args[1]))
                 {
                     case ADD:
                     case ADD_PROCESSOR:
@@ -396,8 +408,7 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
                         list.addAll(ComponentFactory.getRegisteredFactories());
                         
                         break;
-                    }
-                    case NEXT:
+                    }                    case NEXT:
                     case RESET:
                     case START:
                     case STOP:
@@ -458,7 +469,6 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
             }
         }
     }
-    
     
     /**
      * @see org.bukkit.plugin.java.JavaPlugin#onCommand(org.bukkit.command.CommandSender,
@@ -531,7 +541,7 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
                                 Parallel.For(0, c.assocblocks.size(), ndx ->
                                 {
                                     Triplet<Integer, Integer, Integer> loc = c.assocblocks.get(ndx);
-
+                                    
                                     // have to do this separately because of missing block updates.
                                     c.world.getBlockAt(loc.x, loc.y, loc.z).getState().update();
                                 });
@@ -618,6 +628,18 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
                         sender.sendMessage("[" + i + "]: (" + ic.getClass().getSimpleName() + ") " + ic.getState());
                     });
                     break;
+                case ABOUT:
+                    StringBuilder sb = new StringBuilder();
+
+                    sb.append(ChatColor.GOLD + "--------------------- ABOUT ---------------------\n");
+                    sb.append(ChatColor.AQUA + "  MCPU-Core:\n");
+                    sb.append(ChatColor.WHITE + "        Copyright (c) 2017 Unknown6656 and Zedly\n");
+                    sb.append(ChatColor.AQUA + "  " + getName() + ":\n");
+                    sb.append(ChatColor.WHITE + getAboutText());
+                    
+                    print(sender, ChatColor.WHITE, sb.toString());
+                    
+                    break;
                 default:
                     if (!onUnprocessedCommand(sender, command, label, args))
                         error(sender, "The command '" + args[0].trim() + "' is unknown.");
@@ -628,7 +650,6 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
         else
             return false;
     }
-    
     
     private void giveRegisterWand(Player sender, String[] args, boolean isproc)
     {
@@ -723,9 +744,9 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
         }
     }
     
-
     private void addComponent(CommandSender sender, String[] args, boolean isproc)
     {
+        ComponentOrientation or;
         Player player = null;
         int cpusize = 0;
         String icname;
@@ -737,6 +758,7 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
             {
                 player = (Player)sender;
                 loc = player.getLocation();
+                or = getDirection(loc);
                 icname = args[0];
                 
                 if (args.length > 1)
@@ -776,16 +798,16 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
         
         try
         {
-            ComponentOrientation orient = ComponentOrientation.NORTH; // <---- TODO : change orientation depending on the player's orientation
+            or = ComponentOrientation.NORTH; // <---- TODO : change orientation depending on the player's orientation
             
             ComponentFactory<IntegratedCircuit> fac = ComponentFactory.getFactoryByName((isproc ? "processor.emulated." : "") + icname);
-            Triplet<Integer, Integer, Integer> size = fac.getEstimatedSize(orient);
+            Triplet<Integer, Integer, Integer> size = fac.getEstimatedSize(or);
             int i = checkForCollisions(size, x, y, z);
             
             if (i != -1)
                 error(sender, "The new processor/circuit cannot be placed here. It would intersect the existing component no. " + i + ".");
             else
-                spawnComponent(context, fac, player, x, y, z, orient, cpusize);
+                spawnComponent(context, fac, player, x, y, z, or, cpusize);
         }
         catch (InvalidOrientationException o)
         {
@@ -804,7 +826,6 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
         }
     }
     
-
     private int spawnComponent(BlockPlacingContext context, ComponentFactory<IntegratedCircuit> fac, Player player, int x, int y, int z, ComponentOrientation orient, int cpusize) throws InvalidOrientationException
     {
         IntegratedCircuit ic = fac.spawnComponent(context, this, player, x, y, z, orient, cpusize);
@@ -834,7 +855,17 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
         return fnum;
     }
     
-    
+    /**
+     * Checks whether an object with the given coordinates and size collides
+     * with any registered components and returns the collided component's ID
+     * 
+     * @param size The object's size (x|y|z)
+     * @param x The object's X-coordinate
+     * @param y The object's Y-coordinate
+     * @param z The object's Z-coordinate
+     * @return ID number of the component in question (-1 if no collision
+     * occures)
+     */
     private int checkForCollisions(Triplet<Integer, Integer, Integer> size, int x, int y, int z)
     {
         for (int i : circuits.keySet())
@@ -861,12 +892,13 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
         return -1;
     }
     
-    
-    /**    
+    /**
+     * Compiles the code given by the URI into the processor 'core'
+     * 
      * @param sender
-     * @param core
-     * @param source
-     * @return
+     * @param core Emulated target processor
+     * @param source Code to be compiled/loaded
+     * @return 'true', if the operation was successful - otherwise false
      */
     protected final boolean compileLoad(CommandSender sender, EmulatedProcessor core, URI source)
     {
@@ -892,8 +924,8 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
     }
     
     /**
-     * @return
-     * @throws IOException
+     * Serialises all components into the given YAML configuration
+     * @param conf YAML configuration
      */
     public final void serialize(YamlConfiguration conf)
     {
@@ -920,11 +952,10 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
         
         conf.set("circuit_count", num);
     }
-    
+
     /**
-     * @param data
-     * @throws IOException
-     * @throws ClassNotFoundException
+     * Deserialises the given YAML configuration and places all stored components into the world
+     * @param conf YAML configuration
      */
     public final void deserialize(YamlConfiguration conf)
     {
@@ -932,7 +963,7 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
         int cnt = conf.getInt("circuit_count", 0);
         
         circuits.clear();
-
+        
         for (int index = 0; index < cnt; ++index)
             if (ics.containsKey("ic_" + index))
                 try
@@ -949,6 +980,8 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
                 {
                     e.printStackTrace();
                 }
+        
+        System.out.println("loaded " + circuits.size() + " components.");
     }
     
     private void getIC(final String[] argv, final int ndx, final CommandSender sender, Action<IntegratedCircuit> action)
@@ -962,7 +995,6 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
         });
     }
     
-
     private void getProcessor(final String[] argv, final int ndx, final CommandSender sender, Action<EmulatedProcessor> action)
     {
         getIC(argv, ndx, sender, ic ->
@@ -974,7 +1006,6 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
         });
     }
     
-
     private static String[] getBook(ItemStack stack)
     {
         if (stack != null)
@@ -995,7 +1026,6 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
         return null;
     }
     
-
     private static void getInt(final String[] argv, final int ndx, final CommandSender sender, Action<Integer> action)
     {
         String arg = getArg(argv, ndx, sender);
@@ -1011,7 +1041,6 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
             }
     }
     
-
     private static String getArg(final String[] argv, final int ndx, final CommandSender sender)
     {
         if (ndx < argv.length)
@@ -1022,7 +1051,16 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
         return null;
     }
     
-
+    /**
+     * Deletes the given region from the given world
+     * @param w World
+     * @param x The region's lowest X-coordinate
+     * @param y The region's lowest Y-coordinate
+     * @param z The region's lowest Z-coordinate
+     * @param xs The region's size in X-direction
+     * @param ys The region's size in Y-direction
+     * @param zs The region's size in Z-direction
+     */
     protected static void deleteRegion(World w, int x, int y, int z, int xs, int ys, int zs)
     {
         BlockPlacingContext context = new BlockPlacingContext(w);
@@ -1033,12 +1071,22 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
                     context.addBlock(x + i, y + k, z + j, Material.AIR);
     }
     
+    /**
+     * Prints the given message m with the given chat colour c to the server's command line
+     * @param c Chat colour
+     * @param m Message
+     */
     public static void print(ChatColor c, String m)
     {
         print(null, c, m);
     }
     
-
+    /**
+     * Prints the given message m with the given chat colour c to the given target
+     * @param s Target (command line, player, etc.)
+     * @param c Chat colour
+     * @param m Message
+     */
     public static void print(CommandSender s, ChatColor c, String m)
     {
         if (s != null)
@@ -1048,9 +1096,41 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
             log.log(Level.INFO, ChatColor.stripColor(m));
     }
     
-
+    /**
+     * Prints the given error message m to the given target
+     * @param s Target (command line, player, etc.)
+     * @param m Error message (will be displayed in red)
+     */
     public static void error(CommandSender s, String m)
     {
         print(s, ChatColor.RED, m);
+    }
+
+    private static ComponentOrientation getDirection(Location loc)
+    {
+        double yaw = (loc.getYaw() - 90) % 360;
+        double pitch = -loc.getPitch();
+        
+        if (yaw < 0)
+            yaw += 360.0;
+        
+        return getDirection(yaw, pitch < 0 ? 0 : pitch);
+    }
+    
+    private static ComponentOrientation getDirection(double yaw, double pitch)
+    {
+        boolean upright = pitch > 45;
+        
+        yaw += 45;
+        yaw %= 360;
+        
+        if (yaw < 90)
+            return upright ? ComponentOrientation.UPRIGHT_NORTH_SOUTH : ComponentOrientation.NORTH;
+        else if (yaw < 180)
+            return upright ? ComponentOrientation.UPRIGHT_EAST_WEST : ComponentOrientation.EAST;
+        else if (yaw < 270)
+            return upright ? ComponentOrientation.UPRIGHT_NORTH_SOUTH : ComponentOrientation.SOUTH;
+        else
+            return upright ? ComponentOrientation.UPRIGHT_EAST_WEST : ComponentOrientation.WEST;
     }
 }

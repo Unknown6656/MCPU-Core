@@ -15,6 +15,10 @@ import epsilonpotato.mcpu.core.components.LogicGate2x2Type;
 import java.util.HashMap;
 
 
+/**
+ * An factory to create <pre>[0..15] x [0..15] -> [0..15] x [0..15]</pre> logic gates
+ * @author Unknown6656
+ */
 public final class LogicGate2x2Factory extends ComponentFactory<LogicGate2x2>
 {
     private static final HashMap<ComponentOrientation, Tuple<Integer, Integer>> signloc;
@@ -30,17 +34,27 @@ public final class LogicGate2x2Factory extends ComponentFactory<LogicGate2x2>
     }
     
     
+    /**
+     * Creates a new instance
+     * @param type Logic gate type
+     */
     public LogicGate2x2Factory(LogicGate2x2Type type)
     {
         this.type = type;
     }
     
+    /**
+     * @see epsilonpotato.mcpu.core.ComponentFactory#getEstimatedSize(epsilonpotato.mcpu.core.ComponentOrientation)
+     */
     @Override
     public Triplet<Integer, Integer, Integer> getEstimatedSize(ComponentOrientation or)
     {
         return or.isNorthSouth() ? new Triplet<>(4, 1, 3) : new Triplet<>(3, 1, 4);
     }
     
+    /**
+     * @see epsilonpotato.mcpu.core.ComponentFactory#spawnComponent(epsilonpotato.mcpu.core.BlockPlacingContext, epsilonpotato.mcpu.core.MCPUCore, org.bukkit.entity.Player, int, int, int, epsilonpotato.mcpu.core.ComponentOrientation, int)
+     */
     @Override
     @SuppressWarnings("deprecation")
     public LogicGate2x2 spawnComponent(BlockPlacingContext context, MCPUCore caller, Player p, int x, int y, int z, ComponentOrientation or, int iocount)

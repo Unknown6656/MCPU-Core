@@ -108,18 +108,27 @@ public final class SevenSegmentDisplay extends IntegratedCircuit
         b.getState().update();
     }
     
+    /**
+     * @see epsilonpotato.mcpu.core.IntegratedCircuit#getIOLocation(int)
+     */
     @Override
     public Location getIOLocation(int port)
     {
         return new Location(world, x + 2 * port, y, z + 12);
     }
 
+    /**
+     * @see epsilonpotato.mcpu.core.IntegratedCircuit#getState()
+     */
     @Override
     public String getState()
     {
         return String.format("%02x", ioval);
     }
 
+    /**
+     * @see epsilonpotato.mcpu.core.IntegratedCircuit#onTick()
+     */
     @Override
     protected void onTick()
     {
@@ -131,18 +140,27 @@ public final class SevenSegmentDisplay extends IntegratedCircuit
         updateDisplay();
     }
 
+    /**
+     * @see epsilonpotato.mcpu.core.IntegratedCircuit#getValidOrientations()
+     */
     @Override
     protected ComponentOrientation[] getValidOrientations()
     {
         return new ComponentOrientation[] { ComponentOrientation.NORTH };
     }
 
+    /**
+     * @see epsilonpotato.mcpu.core.IntegratedCircuit#serializeComponentSpecific(epsilonpotato.mcpu.util.YamlConfiguration)
+     */
     @Override
     protected final void serializeComponentSpecific(YamlConfiguration conf)
     {
         conf.set("ioval", (int)ioval);
     }
 
+    /**
+     * @see epsilonpotato.mcpu.core.IntegratedCircuit#deserializeComponentSpecific(epsilonpotato.mcpu.util.YamlConfiguration)
+     */
     @Override
     protected void deserializeComponentSpecific(YamlConfiguration conf)
     {
