@@ -45,6 +45,7 @@ import net.minecraft.server.v1_12_R1.Items;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Reader;
 
 import static java.lang.Math.*;
 
@@ -59,7 +60,7 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
 {
     private static final String registerWandTag = "______mcpu_integrated_component_register_tool";
     private static final String circuitFileName = "circuits.yml";
-    private static String usagetext;
+    private final HashMap<String, Tuple<String, String>> usageoptions;
     /**
      * A hash map of all registered ICs. The key is a unique integer number
      * (optimally starting at zero and incremented by one every time a component
@@ -114,36 +115,37 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
         if (usageoptions == null)
             usageoptions = new HashMap<>();
         
-        usageoptions.put("add", new Tuple<>("<x> <y> <z> <w> <a> [io]", "Adds a new component to the world 'w' at the given coordinates 'x|y|z' with the type 'a' and io pin count 'io' (default = 3x3 pins)"));
-        usageoptions.put("addp", new Tuple<>("<x> <y> <z> <w> <a> [io]", "Adds a new processor to the world 'w' at the given coordinates 'x|y|z' with the architecture 'a' and io pin count 'io' (default = 3x3 pins)"));
-        usageoptions.put("add", new Tuple<>("<a> [io]", "Adds a new component with the type 'a' and io pin count 'io' to the world at the callers position"));
-        usageoptions.put("addp", new Tuple<>("<a> [io]", "Adds a new processor with the architecture 'a' and io pin count 'io' to the world at the callers position"));
-        usageoptions.put("remove", new Tuple<>("<n>", "Removes the component No. n"));
-        usageoptions.put("unregister", new Tuple<>("<n>", "Unregisters the component No. n without removing it from the world."));
-        usageoptions.put("loadb", new Tuple<>("<n>", "Loads the book hold in the hand into the processor No. n"));
-        usageoptions.put("loadu", new Tuple<>("<n> <u>", "Loads the string acessible via the given URI u into the processor No. n"));
-        usageoptions.put("start", new Tuple<>("<n>", "Starts the processor core No. n"));
-        usageoptions.put("stop", new Tuple<>("<n>", "Halts the processor core No. n"));
-        usageoptions.put("next", new Tuple<>("<n>", "Forces the execution of the next instruction of processor core No. n"));
-        usageoptions.put("reset", new Tuple<>("<n>", "Halts and resets the processor core No. n"));
-        usageoptions.put("state", new Tuple<>("<n>", "Displays the state of component No. n"));
-        usageoptions.put("list", new Tuple<>("", "Lists all MCPU components in the current world"));
-        usageoptions.put("arch[itectures]", new Tuple<>("", "Lists all available processor architectures and component types"));
+        Reader rd = getTextResource("usageoptions.yml");
+        YamlConfiguration conf = YamlConfiguration.read(rd).getOrCreateSection("options");
+        int num = 0;
         
-        List<String> cmds = new ArrayList<String>(usageoptions.keySet());
-        StringBuilder sb = new StringBuilder();
-        Collections.sort(cmds);
-        
-        sb.append(ChatColor.GOLD).append(ChatColor.UNDERLINE).append("/mcpu").append(ChatColor.WHITE).append("command usage:\n");
-        
-        for (String cmd : cmds)
+        while (conf.containsKey("option_" + num))
         {
-            Tuple<String, String> nfo = usageoptions.get(cmd);
-            
-            sb.append(ChatColor.GOLD).append(cmd.trim()).append(ChatColor.GRAY).append(' ').append(nfo.x).append(ChatColor.WHITE).append(" - ").append(nfo.y).append('\n');
+            YamlConfiguration confOption = conf.getOrCreateSection("option_" + num);
+            String key = confOption.getString("command", "").toLowerCase().trim();
+
+            if (key.length() > 0)
+            {
+                String args = confOption.getString("arguments", "");
+                String desc = confOption.getString("longdescr", "");    
+                
+                usageoptions.put(key, new Tuple<>(args, desc));
+                
+                ++num;
+            }
+            else
+                break;
         }
         
-        usagetext = sb.toString();
+        try
+        {
+            rd.close();
+        }
+        catch (IOException e)
+        {
+        }
+        
+        this.usageoptions = usageoptions;
         
         try
         {
@@ -215,6 +217,8 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
         circuits.values().forEach(c ->
         {
             if (c == null)
+                return;
+            else if (!c.isCompletelyLoaded())
                 return;
             
             // UPDATE INPUT IO
@@ -404,11 +408,13 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
                     case ADD:
                     case ADD_PROCESSOR:
                     case REGISTER:
+                    case REGISTER_PROCESSOR:
                     {
                         list.addAll(ComponentFactory.getRegisteredFactories());
                         
                         break;
-                    }                    case NEXT:
+                    }
+                    case NEXT:
                     case RESET:
                     case START:
                     case STOP:
@@ -430,8 +436,14 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
                         
                         break;
                     }
-                    default:
+                    case ABOUT:
+                    case ARCH:
+                    case HELP:
+                    case LIST:
                         return null;
+                    case UNKNOWN:
+                    default:
+                        return null; // onTabComplete(sender, new String[] { args[0] }); // (?)
                 }
             
             return list;
@@ -487,8 +499,47 @@ public abstract class MCPUCore extends JavaPlugin implements Listener, TabComple
             switch (cmd)
             {
                 case HELP:
-                    print(sender, ChatColor.YELLOW, usagetext);
+                {
+                    List<String> cmds = new ArrayList<String>(usageoptions.keySet());
+                    StringBuilder sb = new StringBuilder();
+                    
+                    if (args.length > 1)
+                    {
+                        String cmnd = args[1].toLowerCase().trim();
+                        
+                        if (cmds.contains(cmnd))
+                        {
+                            Tuple<String, String> nfo = usageoptions.get(cmnd);
+                            
+                            sb.append(ChatColor.GOLD).append(cmnd).append(ChatColor.GRAY).append(' ').append(nfo.x).append(ChatColor.WHITE).append(" - ").append(nfo.y).append('\n');
+                        }
+                        else
+                            sb.append(ChatColor.RED).append("The mcpu subcommand '").append(cmnd).append("' does not exist.");    
+                    }
+                    else
+                    {
+                        sb.append(ChatColor.WHITE).append("These ").append(ChatColor.GOLD).append("/mcpu").append(ChatColor.WHITE).append(" commands are available:\n");
+
+                        Collections.sort(cmds);
+                        boolean first = true;
+                        
+                        for (String key : cmds)
+                            if (!first)
+                                sb.append(ChatColor.WHITE).append(',');
+                            else
+                            {
+                                first = false;
+                            
+                                sb.append(ChatColor.GOLD).append(key);
+                            }
+
+                        sb.append(ChatColor.WHITE).append("\ntype '").append(ChatColor.GOLD).append("/mcpu ? <command>").append(ChatColor.WHITE).append("' for more information about the specific command.");
+                    }
+
+                    print(sender, ChatColor.WHITE, sb.toString());
+                    
                     break;
+                }
                 case ADD:
                 case ADD_PROCESSOR:
                 case REGISTER:

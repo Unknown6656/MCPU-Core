@@ -13,6 +13,10 @@ import epsilonpotato.mcpu.util.Triplet;
 import epsilonpotato.mcpu.util.YamlConfiguration;
 
 
+/**
+ * Represents a 7-segment-display which can display hexadecimal digits (and dots) 
+ * @author Unknown6656
+ */
 public final class SevenSegmentDisplay extends IntegratedCircuit
 {
     /*
@@ -66,6 +70,15 @@ public final class SevenSegmentDisplay extends IntegratedCircuit
          super();
     }
     
+    /**
+     * Creates a new instance
+     * @param p The creator
+     * @param w The world
+     * @param x The display's X-coordinate
+     * @param y The display's Y-coordinate
+     * @param z The display's Z-coordinate
+     * @throws InvalidOrientationException Thrown, if the display was placed along an invalid orientation
+     */
     public SevenSegmentDisplay(Player p, World w, int x, int y, int z) throws InvalidOrientationException
     {
         super(p, new Location(w, x, y, z), new Triplet<>(9, 2, 12), 5, ComponentOrientation.NORTH);

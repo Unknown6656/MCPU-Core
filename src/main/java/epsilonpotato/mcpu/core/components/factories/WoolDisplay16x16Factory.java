@@ -55,4 +55,14 @@ public final class WoolDisplay16x16Factory extends ComponentFactory<WoolDisplay1
     {
         return new Triplet<>(19, 1, 19);
     }
+
+    
+    /**
+     * @see epsilonpotato.mcpu.core.ComponentFactory#getCircuitType()
+     */
+    @Override
+    protected Class<WoolDisplay16x16> getCircuitType()
+    {
+        return WoolDisplay16x16.class;
+    }
 }

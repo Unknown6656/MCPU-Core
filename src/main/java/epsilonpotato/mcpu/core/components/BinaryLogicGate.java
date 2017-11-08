@@ -79,11 +79,11 @@ public final class BinaryLogicGate extends IntegratedCircuit
     @Override
     protected final void onTick()
     {
-        int x = io[0].getValue();
-        int y = io[1].getValue();
+        int x = io[0].getValue() != 0 ? -1 : 0;
+        int y = io[1].getValue() != 0 ? -1 : 0;
         int res = type.eval(x, y);
         
-        io[2].setValue((res & 0xff) != 0 ? 15 : 0);
+        io[2].setValue(res != 0 ? 0xf : 0x0);
     }
 
     /**
@@ -110,7 +110,7 @@ public final class BinaryLogicGate extends IntegratedCircuit
     @Override
     protected final void serializeComponentSpecific(YamlConfiguration conf)
     {
-        conf.put("type", type);
+        conf.put("type", type.toString());
     }
 
     /**

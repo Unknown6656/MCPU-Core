@@ -1,0 +1,53 @@
+options:
+  option_0:
+    command: add
+    arguments: <a> [io]
+    longdescr: Adds a new component with the type 'a' and io pin count 'io' to the world at the callers position
+  option_1:
+    command: next
+    arguments: <n>
+    longdescr: Forces the execution of the next instruction of processor core No. n
+  option_2:
+    command: addp
+    arguments: <a> [io]
+    longdescr: Adds a new processor with the architecture 'a' and io pin count 'io' to the world at the callers position
+  option_3:
+    command: unregister
+    arguments: <n>
+    longdescr: Unregisters the component No. n without removing it from the world.
+  option_4:
+    command: start
+    arguments: <n>
+    longdescr: Starts the processor core No. n
+  option_5:
+    command: loadu
+    arguments: <n> <u>
+    longdescr: Loads the string acessible via the given URI u into the processor No. n
+  option_6:
+    command: list
+    arguments: ''
+    longdescr: Lists all MCPU components in the current world
+  option_7:
+    command: remove
+    arguments: <n>
+    longdescr: Removes the component No. n
+  option_8:
+    command: arch[itectures]
+    arguments: ''
+    longdescr: Lists all available processor architectures and component types
+  option_9:
+    command: stop
+    arguments: <n>
+    longdescr: Halts the processor core No. n
+  option_10:
+    command: loadb
+    arguments: <n>
+    longdescr: Loads the book hold in the hand into the processor No. n
+  option_11:
+    command: reset
+    arguments: <n>
+    longdescr: Halts and resets the processor core No. n
+  option_12:
+    command: state
+    arguments: <n>
+    longdescr: Displays the state of component No. n

@@ -12,6 +12,7 @@ import epsilonpotato.mcpu.core.*;
 import epsilonpotato.mcpu.util.*;
 import epsilonpotato.mcpu.core.components.BinaryLogicGate;
 import epsilonpotato.mcpu.core.components.BinaryLogicGateType;
+import epsilonpotato.mcpu.core.components.WoolDisplay16x16;
 
 import java.util.HashMap;
 
@@ -90,5 +91,14 @@ public final class BinaryLogicGateFactory extends ComponentFactory<BinaryLogicGa
         */
         
         return new BinaryLogicGate(p, new Location(context.getWorld(), x, y, z), type, or);
+    }
+    
+    /**
+     * @see epsilonpotato.mcpu.core.ComponentFactory#getCircuitType()
+     */
+    @Override
+    protected Class<BinaryLogicGate> getCircuitType()
+    {
+        return BinaryLogicGate.class;
     }
 }
