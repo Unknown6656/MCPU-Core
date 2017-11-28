@@ -64,7 +64,7 @@ public abstract class IntegratedCircuit implements Serializable
      * The component's I/O ports
      */
     protected IOPort[] io;
-
+    
 
     /**
      * Serialises component-specific data into the given YAML configuration
@@ -315,6 +315,20 @@ public abstract class IntegratedCircuit implements Serializable
         }
         
         return true;
+    }
+    
+    /**
+     * Returns the ID associated with the current component instance
+     * @return Component unique ID
+     * @throws Exception Thrown, if the component is not found in the plugin's component list
+     */
+    public final int getComponentID() throws Exception
+    {
+        for (int id : MCPUCore.circuits.keySet())
+            if (MCPUCore.circuits.get(id) == this)
+                return id;
+        
+        throw new Exception("The current component could not be found in the plugin's component list.");
     }
     
     /**
